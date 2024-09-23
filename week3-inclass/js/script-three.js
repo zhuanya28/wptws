@@ -1,5 +1,6 @@
 let container;
 let scene, camera, renderer;
+let controls;
 
 let cube;
 let ball;
@@ -12,8 +13,12 @@ function initThree() {
   renderer = new THREE.WebGLRenderer();
   renderer.setSize(window.innerWidth, window.innerHeight);
 
+
+
   container = document.getElementById("container-three");
   container.appendChild(renderer.domElement);
+
+  controls = new OrbitControls(camera, renderer.domElement);
 
   setupThree();
 
@@ -49,7 +54,7 @@ function animate() {
 
 function getCube() {
   const geometry = new THREE.BoxGeometry(1, 1, 1);
-  const material = new THREE.MeshBasicMaterial({
+  const material = new THREE.MeshNormalMaterial({
     color: 0x00ff00
   });
   const mesh = new THREE.Mesh(geometry, material);
