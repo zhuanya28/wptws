@@ -1,15 +1,20 @@
-// https://threejs.org/docs/index.html?q=light#api/en/lights/PointLight
-// https://threejs.org/docs/index.html?q=phong#api/en/materials/MeshPhongMaterial
-
 let light, lightMesh;
 let sculpture;
-let cubes = [];
-let rectNum = 10;
-let lathe;
+let jumpingSphere;
+let cylinders = [];
+
+const numCylinders = 7;
+const radius = 250;
+const height = 600;
+const angleStep = (2 * Math.PI) / numCylinders;
+
+let currentCylinderIndex = 0;
+let nextCylinderIndex = 1;
+let transitionProgress = 0;
+const transitionSpeed = 0.01; 
+
 
 function setupThree() {
-  // It is not recommended to explore materials and lights this week!
-
   // change the background color
   renderer.setClearColor("#CCCCCC");
 
@@ -26,41 +31,29 @@ function setupThree() {
   light.add(lightMesh);
   lightMesh.scale.set(10, 10, 10);
 
-  // add meshes
-  for (let i = 0; i < rectNum; i++) {
-    cubes[i] = getCube();
-    cubes[i].position.set(0, i * 15, 0);
-    cubes[i].scale.set(200 * Math.random(), i * Math.random()*5, 100 * Math.sin(i));
-  }
-
-  lathe = getLathe();
-
-
-  // change color
-  //   ball.material.color.set("#FF00FF");
-  //   // change transparency
-  //   ball.material.transparent = true;
-  //   ball.material.opacity = 0.75;
-
   sculpture = new THREE.Group();
-  scene.add(sculpture);
-  for (let i = 0; i < rectNum; i++) {
-    sculpture.add(cubes[i]);
+
+
+  for (let i = 0; i < numCylinders; i++) {
+    const geometry = new THREE.CylinderGeometry(100, 100, height, 32);
+    const material = new THREE.MeshPhongMaterial({ color: 0x0077ff });
+    const cylinder = new THREE.Mesh(geometry, material);
+
+    const angle = i * angleStep;
+    cylinder.position.set(
+      Math.cos(angle) * radius,
+      0,
+      Math.sin(angle) * radius
+    );
+    sculpture.add(cylinder);
+    cylinders.push(cylinder);
   }
-  sculpture.add(lathe);
+    jumpingSphere = createJumpingSphere();
+    sculpture.add(jumpingSphere);
 
-
+  scene.add(sculpture);
 }
 
-function getCube() {
-  const geometry = new THREE.BoxGeometry(1, 1, 1);
-  const material = new THREE.MeshPhongMaterial({
-    color: "#999999",
-    shininess: 100,
-  });
-  const mesh = new THREE.Mesh(geometry, material);
-  return mesh;
-}
 
 function updateThree() {
   let angle = frame * 0.01;
@@ -70,7 +63,70 @@ function updateThree() {
   let z = sin(angle) * radDist;
   light.position.set(x, y, z);
 
+  cylinders.forEach((cylinder, index) => {
+    const phaseShift = (index * Math.PI * 2) / numCylinders;
+    cylinder.position.y = Math.sin(frame * 0.05 + phaseShift) * 100;
+  });
+
+
+    // Update transition progress
+    transitionProgress += transitionSpeed;
+
+    if (transitionProgress >= 1) {
+      transitionProgress = 0;
+      currentCylinderIndex = nextCylinderIndex;
+      nextCylinderIndex = (nextCylinderIndex + 1) % numCylinders;
+    }
+  
+    // Interpolate between current and next cylinder
+    const currentCylinder = cylinders[currentCylinderIndex];
+    const nextCylinder = cylinders[nextCylinderIndex];
+  
+    // jumpingSphere.position.x = THREE.MathUtils.lerp(
+    //   currentCylinder.position.x,
+    //   nextCylinder.position.x,
+    //   transitionProgress
+    // );
+    
+    // jumpingSphere.position.y = THREE.MathUtils.lerp(
+    //   currentCylinder.position.y + height,
+    //   nextCylinder.position.y + height,
+    //   transitionProgress
+    // );
+  
+    // jumpingSphere.position.z = THREE.MathUtils.lerp(
+    //   currentCylinder.position.z,
+    //   nextCylinder.position.z,
+    //   transitionProgress
+    // );
+
+    const newPosition = new THREE.Vector3(
+        THREE.MathUtils.lerp(currentCylinder.position.x, nextCylinder.position.x, transitionProgress),
+        THREE.MathUtils.lerp(currentCylinder.position.y + height / 2+40, nextCylinder.position.y + height / 2+40, transitionProgress),
+        THREE.MathUtils.lerp(currentCylinder.position.z, nextCylinder.position.z, transitionProgress)
+      );
+    
+      // Calculate direction vector and apply rotation
+      const direction = newPosition.clone().sub(jumpingSphere.position).normalize();
+      
+      const axis = new THREE.Vector3(0, -1, 0); // Rotate around Y-axis
+      const angleToRotate = direction.length() * transitionSpeed; // Adjust rotation speed
+      jumpingSphere.rotateOnWorldAxis(axis, angleToRotate);
+    
+      jumpingSphere.position.copy(newPosition);
+  
+
+
   sculpture.rotation.y = frame * 0.01;
+}
+
+
+
+function createJumpingSphere() {
+  const sphereGeometry = new THREE.SphereGeometry(50, 32, 32);
+  const sphereMaterial = new THREE.MeshPhongMaterial({ color: "#ff0000" });
+  jumpingSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+  return jumpingSphere;
 }
 
 function getBasicSphere() {
@@ -85,15 +141,4 @@ function getBasicSphere() {
 function getPointLight(color) {
   const light = new THREE.PointLight(color, 2, 0, 0.1); // ( color , intensity, distance (0=infinite), decay )
   return light;
-}
-
-function getLathe() {
-  const points = [];
-  for (let i = 0; i < 10; i++) {
-    points.push(new THREE.Vector2(Math.sin(i * 0.2) * 10 + 5, (i - 5) * 2));
-  }
-  const geometry = new THREE.LatheGeometry(points);
-  const material = new THREE.MeshBasicMaterial({ color: 0xffff00 });
-  const lathe = new THREE.Mesh(geometry, material);
-  return lathe;
 }
