@@ -4,10 +4,10 @@ let jumpingSphere;
 let cylinders = [];
 let bottomCircle;
 let centerCylinder;
+let yoff = 0;
 
 let cone;
 let cone2;
-
 
 const numCylinders = 7;
 const radius = 250;
@@ -21,7 +21,7 @@ const transitionSpeed = 0.01;
 
 function setupThree() {
   // change the background color
-  renderer.setClearColor("#585481");
+  renderer.setClearColor("#170E26");
 
   // add ambient light
   ambiLight = new THREE.AmbientLight("#FFFFFF");
@@ -56,15 +56,13 @@ function setupThree() {
   bottomCircle = getCircle();
   sculpture.add(bottomCircle);
 
-  centerCylinder = getCylinder(10, 10, height*2);
-  centerCylinder.position.y = height/2;
+  centerCylinder = getCenterCylinder(10, 10, height * 2);
+  centerCylinder.position.y = height / 2;
   sculpture.add(centerCylinder);
 
-  cone = getCone(300, 150, 0, 2*PI);
-  cone.position.y = height+240;
+  cone = getCone(300, 150, 0, 2 * PI);
+  cone.position.y = height + 240;
   sculpture.add(cone);
-
-
 
   scene.add(sculpture);
 }
@@ -79,8 +77,15 @@ function updateThree() {
 
   updateCylinders();
   updateSphere();
+  updateCenterCylinder();
 
   sculpture.rotation.y = frame * 0.01;
+}
+
+function updateCenterCylinder() {
+  let newY = cos(yoff) * 30;
+  yoff += 0.01;
+  cone.position.y = height + 260 + newY;
 }
 
 function updateCylinders() {
@@ -132,45 +137,74 @@ function updateSphere() {
   jumpingSphere.position.copy(newPosition);
 }
 
-function createJumpingSphere() {
-  const sphereGeometry = new THREE.SphereGeometry(70, 32, 32);
-  const sphereMaterial = new THREE.MeshPhongMaterial({ color: "#D64933" });
-  localJumpingSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-  return localJumpingSphere;
-}
-
-function getBasicSphere() {
-  const geometry = new THREE.SphereGeometry(1, 32, 32);
-  const material = new THREE.MeshBasicMaterial({
-    color: "#ffffff",
-  });
-  const mesh = new THREE.Mesh(geometry, material);
-  return mesh;
-}
-
-function getCone(radius, coneHeight, startPos, endPos){
-    const geometry = new THREE.ConeGeometry( radius, coneHeight, 32, 10, false, startPos, endPos ); 
-const material = new THREE.MeshPhongMaterial( {color: 0x2B303A} );
-const mesh = new THREE.Mesh(geometry, material );
-return mesh;
-}
-
-function getCylinder(radiusTop, radiusBottom, cylinderHeight) {
-  const geometry = new THREE.CylinderGeometry(radiusTop, radiusBottom, cylinderHeight, 32);
-  const material = new THREE.MeshPhongMaterial({ color: 0x0C7C59 });
-  const mesh = new THREE.Mesh(geometry, material);
-  return mesh;
-}
-
 function getCircle() {
-  const geometry = new THREE.CircleGeometry(500, 100);
-  const material = new THREE.MeshPhongMaterial({ color: 0x58A4B0 });
+  const geometry = new THREE.CircleGeometry(600, 100);
+  const material = new THREE.MeshPhongMaterial({ color: 0x533A7B });
   const mesh = new THREE.Mesh(geometry, material);
 
   // Position the circle below all cylinders and spheres
   mesh.rotation.x = -Math.PI / 2;
   mesh.position.y = -height / 2 - 50;
 
+  return mesh;
+}
+
+function getCylinder(radiusTop, radiusBottom, cylinderHeight) {
+  const geometry = new THREE.CylinderGeometry(
+    radiusTop,
+    radiusBottom,
+    cylinderHeight,
+    32
+  );
+  const material = new THREE.MeshPhongMaterial({ color: 0x6969B3 });
+  const mesh = new THREE.Mesh(geometry, material);
+  return mesh;
+}
+
+
+function createJumpingSphere() {
+    const sphereGeometry = new THREE.SphereGeometry(70, 32, 32);
+    const sphereMaterial = new THREE.MeshPhongMaterial({ color: "#8BE8A7" });
+    localJumpingSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+    return localJumpingSphere;
+  }
+
+function getCenterCylinder(radiusTop, radiusBottom, cylinderHeight) {
+  const geometry = new THREE.CylinderGeometry(
+    radiusTop,
+    radiusBottom,
+    cylinderHeight,
+    32
+  );
+  const material = new THREE.MeshPhongMaterial({ color: 0x98C1D9}); 
+  const mesh = new THREE.Mesh(geometry, material);
+  return mesh;
+}
+
+
+function getCone(radius, coneHeight, startPos, endPos) {
+  const geometry = new THREE.ConeGeometry(
+    radius,
+    coneHeight,
+    32,
+    10,
+    false,
+    startPos,
+    endPos
+  );
+  const material = new THREE.MeshPhongMaterial({ color: 0xDDF2FE });
+  const mesh = new THREE.Mesh(geometry, material);
+  return mesh;
+}
+
+//LIGHT
+
+function getBasicSphere() {
+  const geometry = new THREE.SphereGeometry(1, 32, 32);
+  const material = new THREE.MeshBasicMaterial({
+    color: "#EFF6EE",
+  });
+  const mesh = new THREE.Mesh(geometry, material);
   return mesh;
 }
 
