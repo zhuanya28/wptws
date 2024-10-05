@@ -3,6 +3,10 @@ let sculpture;
 let jumpingSphere;
 let cylinders = [];
 let bottomCircle;
+let centerCylinder;
+
+let cone;
+let cone2;
 
 
 const numCylinders = 7;
@@ -17,14 +21,14 @@ const transitionSpeed = 0.01;
 
 function setupThree() {
   // change the background color
-  renderer.setClearColor("#231651");
+  renderer.setClearColor("#585481");
 
   // add ambient light
-  ambiLight = new THREE.AmbientLight("#D6FFF6");
+  ambiLight = new THREE.AmbientLight("#FFFFFF");
   scene.add(ambiLight);
 
   // add point light
-  light = getPointLight("#D6FFF6");
+  light = getPointLight("#FFFFFF");
   scene.add(light);
 
   // add a small sphere for the light
@@ -35,9 +39,7 @@ function setupThree() {
   sculpture = new THREE.Group();
 
   for (let i = 0; i < numCylinders; i++) {
-    const geometry = new THREE.CylinderGeometry(100, 100, height, 32);
-    const material = new THREE.MeshPhongMaterial({ color: 0x4DCCBD });
-    const cylinder = new THREE.Mesh(geometry, material);
+    const cylinder = getCylinder(100, 100, height);
 
     const angle = i * angleStep;
     cylinder.position.set(
@@ -54,23 +56,32 @@ function setupThree() {
   bottomCircle = getCircle();
   sculpture.add(bottomCircle);
 
+  centerCylinder = getCylinder(10, 10, height*2);
+  centerCylinder.position.y = height/2;
+  sculpture.add(centerCylinder);
+
+  cone = getCone(300, 150, 0, 2*PI);
+  cone.position.y = height+240;
+  sculpture.add(cone);
+
+
+
   scene.add(sculpture);
 }
 
 function updateThree() {
-    let angle = frame * 0.01;
-    let radDist = 500;
-    let x = cos(angle) * radDist;
-    let y = 300;
-    let z = sin(angle) * radDist;
-    light.position.set(x, y, z);
+  let angle = frame * 0.01;
+  let radDist = 500;
+  let x = cos(angle) * radDist;
+  let y = 1000;
+  let z = sin(angle) * radDist;
+  light.position.set(x, y, z);
 
-  
-    updateCylinders();
-    updateSphere();
-  
-    sculpture.rotation.y = frame * 0.01;
-  }
+  updateCylinders();
+  updateSphere();
+
+  sculpture.rotation.y = frame * 0.01;
+}
 
 function updateCylinders() {
   cylinders.forEach((cylinder, index) => {
@@ -78,7 +89,6 @@ function updateCylinders() {
     cylinder.position.y = Math.sin(frame * 0.05 + phaseShift) * 100;
   });
 }
-
 
 function updateSphere() {
   transitionProgress += transitionSpeed;
@@ -122,10 +132,9 @@ function updateSphere() {
   jumpingSphere.position.copy(newPosition);
 }
 
-
 function createJumpingSphere() {
   const sphereGeometry = new THREE.SphereGeometry(70, 32, 32);
-  const sphereMaterial = new THREE.MeshPhongMaterial({ color: "#FF8484" });
+  const sphereMaterial = new THREE.MeshPhongMaterial({ color: "#D64933" });
   localJumpingSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
   return localJumpingSphere;
 }
@@ -139,19 +148,33 @@ function getBasicSphere() {
   return mesh;
 }
 
-function getCircle(){
-    const geometry = new THREE.CircleGeometry(500, 100);
-  const material = new THREE.MeshBasicMaterial({ color: 0x2374AB });
+function getCone(radius, coneHeight, startPos, endPos){
+    const geometry = new THREE.ConeGeometry( radius, coneHeight, 32, 10, false, startPos, endPos ); 
+const material = new THREE.MeshPhongMaterial( {color: 0x2B303A} );
+const mesh = new THREE.Mesh(geometry, material );
+return mesh;
+}
+
+function getCylinder(radiusTop, radiusBottom, cylinderHeight) {
+  const geometry = new THREE.CylinderGeometry(radiusTop, radiusBottom, cylinderHeight, 32);
+  const material = new THREE.MeshPhongMaterial({ color: 0x0C7C59 });
   const mesh = new THREE.Mesh(geometry, material);
-  
+  return mesh;
+}
+
+function getCircle() {
+  const geometry = new THREE.CircleGeometry(500, 100);
+  const material = new THREE.MeshPhongMaterial({ color: 0x58A4B0 });
+  const mesh = new THREE.Mesh(geometry, material);
+
   // Position the circle below all cylinders and spheres
-  mesh.rotation.x = -Math.PI / 2; 
-  mesh.position.y = -height / 2 - 50; 
-  
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.position.y = -height / 2 - 50;
+
   return mesh;
 }
 
 function getPointLight(color) {
-  const light = new THREE.PointLight(color, 2, 0, 0.1); // ( color , intensity, distance (0=infinite), decay )
+  const light = new THREE.PointLight(color, 10, 0, 0.1); // ( color , intensity, distance (0=infinite), decay )
   return light;
 }
