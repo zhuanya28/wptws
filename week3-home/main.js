@@ -21,14 +21,14 @@ const transitionSpeed = 0.01;
 
 function setupThree() {
   // change the background color
-  renderer.setClearColor("#210B2C");
+  renderer.setClearColor("#22223B");
 
   // add ambient light
-  ambiLight = new THREE.AmbientLight("#F2FFF4");
+  ambiLight = new THREE.AmbientLight("#FFFFFF");
   scene.add(ambiLight);
 
   // add point light
-  light = getPointLight("#F2FFF4");
+  light = getPointLight("#FFFFFF");
   scene.add(light);
 
   // add a small sphere for the light
@@ -139,7 +139,7 @@ function updateSphere() {
 
 function getCircle() {
   const geometry = new THREE.CircleGeometry(600, 100);
-  const material = new THREE.MeshPhongMaterial({ color: 0x55286F });
+  const material = new THREE.MeshPhongMaterial({ color: 0x4A4E69 });
   const mesh = new THREE.Mesh(geometry, material);
 
   // Position the circle below all cylinders and spheres
@@ -156,7 +156,7 @@ function getCylinder(radiusTop, radiusBottom, cylinderHeight) {
     cylinderHeight,
     32
   );
-  const material = new THREE.MeshPhongMaterial({ color: 0xBC96E6 });
+  const material = new THREE.MeshPhongMaterial({ color: 0x9A8C98 });
   const mesh = new THREE.Mesh(geometry, material);
   return mesh;
 }
@@ -164,7 +164,7 @@ function getCylinder(radiusTop, radiusBottom, cylinderHeight) {
 
 function createJumpingSphere() {
     const sphereGeometry = new THREE.SphereGeometry(70, 32, 32);
-    const sphereMaterial = new THREE.MeshPhongMaterial({ color: "#AAF3B4" });
+    const sphereMaterial = new THREE.MeshPhongMaterial({ color: "#2292A4" });
     localJumpingSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
     return localJumpingSphere;
   }
@@ -176,7 +176,7 @@ function getCenterCylinder(radiusTop, radiusBottom, cylinderHeight) {
     cylinderHeight,
     32
   );
-  const material = new THREE.MeshPhongMaterial({ color: 0xD8B4E2}); 
+  const material = new THREE.MeshPhongMaterial({ color: 0xC9ADA7}); 
   const mesh = new THREE.Mesh(geometry, material);
   return mesh;
 }
@@ -192,7 +192,7 @@ function getCone(radius, coneHeight, startPos, endPos) {
     startPos,
     endPos
   );
-  const material = new THREE.MeshPhongMaterial({ color: 0xEEF4ED });
+  const material = new THREE.MeshPhongMaterial({ color: 0xF2E9E4 });
   const mesh = new THREE.Mesh(geometry, material);
   return mesh;
 }
