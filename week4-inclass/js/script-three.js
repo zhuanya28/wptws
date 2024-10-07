@@ -1,7 +1,6 @@
 console.log("three.js Version: " + THREE.REVISION);
 
-let container, gui, stats;
-let scene, camera, renderer;
+let scene, camera, renderer, container;
 let controls;
 let time, frame = 0;
 
@@ -23,18 +22,12 @@ function initThree() {
 
   controls = new OrbitControls(camera, renderer.domElement);
 
-  gui = new dat.GUI();
-
-  stats = new Stats();
-  stats.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
-  document.body.appendChild(stats.domElement);
-
   setupThree(); // *** 
+
   renderer.setAnimationLoop(animate);
 }
 
 function animate() {
-  stats.update();
   time = performance.now();
   frame++;
 
