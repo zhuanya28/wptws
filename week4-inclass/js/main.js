@@ -13,7 +13,7 @@ function setupThree() {
   gui.add(params, "sceneChildren").listen();
 
   //
-  for (let i = 0; i < 100; i++) {
+  for (let i = 0; i < 1000; i++) {
     let randomPos = p5.Vector.random3D();
     randomPos.mult(WORLD_SIZE);
 

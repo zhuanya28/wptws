@@ -4,9 +4,13 @@ let params = {
 
 let cube;
 
+let gui;
+
 function setupThree() {
   cube = getBox();
   scene.add(cube);
+
+  gui = new dat.GUI();
 
   cube.position.set(1, 0, 0); //(x, y, z);
   cube.scale.x = 100;
