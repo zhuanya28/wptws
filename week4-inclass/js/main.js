@@ -28,6 +28,7 @@ function setupThree() {
 function updateThree() {
   for (let c of cubes) {
     c.update();
+    c.move();
   }
 
   params.sceneChildren = scene.children.length;
