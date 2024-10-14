@@ -13,8 +13,20 @@ let plane;
 
 
 function setupThree() {
+  //FOG
+  scene.background = new THREE.Color("black");
+  scene.fog = new THREE.Fog( "black", 1, 2000 );
+   
+  //LIGHT
 
-  scene.fog = new THREE.Fog( 0xFF0000, 1, 1000 );
+//   const ambilight = new THREE.AmbientLight( 0x333333 ); // soft white light
+// scene.add( ambilight );
+
+
+//HEMISPHERRE LIGHT
+
+const hemispherelight = new THREE.HemisphereLight( 0xff0000, 0x0000FF, 1 ); 
+scene.add( hemispherelight );
 
 
  plane = getPlane();
@@ -46,7 +58,7 @@ function updateThree() {
 
 function getBox() {
  const geometry = new THREE.BoxGeometry(1, 1, 1);
- const material = new THREE.MeshBasicMaterial();
+ const material = new THREE.MeshStandardMaterial();
  const mesh = new THREE.Mesh(geometry, material);
  return mesh;
 }
@@ -55,7 +67,7 @@ function getBox() {
 // getPlane
 function getPlane() {
  const geometry = new THREE.PlaneGeometry(1, 1);
- const material = new THREE.MeshBasicMaterial({
+ const material = new THREE.MeshStandardMaterial({
    color: 0xFFFFFF,
    side: THREE.DoubleSide
  });
