@@ -9,33 +9,84 @@ let params = {
 let cubes = [];
 let plane;
 let pointlight;
+let spotLight, spotLightHelper, spotLightTarget;
+let lightTarget, directionalLightHelper, directionalLight;
 
 function setupThree() {
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap; // default THREE.PCFShadowMap
+
   //FOG
   scene.background = new THREE.Color(0x000000);
   scene.fog = new THREE.Fog(0x000000, 1, 2000);
 
   //LIGHT
 
-  // const ambilight = new THREE.AmbientLight("#333"); // soft white light
+  const ambilight = new THREE.AmbientLight("#333"); // soft white light
   // scene.add(ambilight);
 
   //HEMISPHERRE LIGHT
 
-  // const hemispherelight = new THREE.HemisphereLight( 0xff0000, 0x0000FF, 0.05 );
+  const hemispherelight = new THREE.HemisphereLight(0xff0000, 0x0000ff, 0.05);
   // scene.add( hemispherelight );
 
   //POINT LIGHT
   //set the decay value (very low)
-   pointlight = new THREE.PointLight(0xff0000, 10, 500,0.01);
+  pointlight = new THREE.PointLight(0xff0000, 10, 1000, 0.01);
   pointlight.position.set(0, 200, 0);
-  scene.add(pointlight);
+  pointlight.castShadow = true;
+  // scene.add(pointlight);
 
+  //SPOTLIGHT
+  //color, instensity, distance, angle, penumbra, decay
+  spotLight = new THREE.SpotLight(0xffffff, 100, 1000, Math.PI / 4, 1.0, 0.01);
+  spotLight.position.set(0, 300, 0);
+  spotLight.castShadow = true;
+  // scene.add(spotLight);
 
+  //ADD SPHERE
   let sphere = getSphere();
-  sphere.scale.set(30, 30,30);
+  sphere.scale.set(20, 20, 20);
   // sphere.position.copy(pointlight.position);
-  pointlight.add(sphere);
+  spotLight.add(sphere);
+
+  //SPOTLIGHT TARGET
+  spotLightTarget = getBox();
+  spotLightTarget.position.set(0, 300, 0);
+  spotLightTarget.scale.set(30, 30, 30);
+  spotLightTarget.material = new THREE.MeshBasicMaterial({
+    color: 0xff00ff,
+  });
+
+  spotLight.target = spotLightTarget;
+  // scene.add(spotLightTarget);
+
+  //SPOTLIGHT HELPER
+  spotLightHelper = new THREE.SpotLightHelper(spotLight);
+  // scene.add(spotLightHelper);
+
+  //DIRECTIONAL LIGHT
+  let directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+  directionalLight.castShadow = true;
+  directionalLight.position.set(0, 300, 0);
+  scene.add(directionalLight);
+
+
+  lightTarget = getBox();
+  lightTarget.position.set(0, 100, 0);
+  lightTarget.scale.set(30, 30, 30);
+  lightTarget.material = new THREE.MeshBasicMaterial({
+    color: 0xff00ff,
+  });
+
+  directionalLight.target = lightTarget;
+
+
+  directionalLightHelper = new THREE.DirectionalLightHelper( directionalLight, 5 );
+  scene.add( directionalLightHelper );
+
+
+
 
 
   plane = getPlane();
@@ -56,27 +107,35 @@ function setupThree() {
   }
 }
 
-function getSphere(){
-  const geometry = new THREE.SphereGeometry( 1, 32, 32 ); 
-const material = new THREE.MeshBasicMaterial( { color: 0xffff00 } ); 
-const sphere = new THREE.Mesh( geometry, material ); 
-return sphere;
-}
-
 function updateThree() {
+  // spotLightTarget.position.x = sin(frame * 0.01) * 300;
+  // spotLightTarget.position.z = cos(frame * 0.01) * 300;
+  // spotLightHelper.update();
 
-  pointlight.position.x = sin(frame *0.01)*100;
-  pointlight.position.z = sin(frame *0.01)*300;
+
+  lightTarget.position.x = sin(frame * 0.01) * 300;
+  lightTarget.position.z = cos(frame * 0.01) * 300;
+  directionalLightHelper.update();
 
   for (let cube of cubes) {
     cube.update();
   }
 }
 
+function getSphere() {
+  const geometry = new THREE.SphereGeometry(1, 32, 32);
+  const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const sphere = new THREE.Mesh(geometry, material);
+  return sphere;
+}
+
 function getBox() {
   const geometry = new THREE.BoxGeometry(1, 1, 1);
   const material = new THREE.MeshStandardMaterial();
+
   const mesh = new THREE.Mesh(geometry, material);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
   return mesh;
 }
 
@@ -88,6 +147,7 @@ function getPlane() {
     side: THREE.DoubleSide,
   });
   const mesh = new THREE.Mesh(geometry, material);
+  mesh.receiveShadow = true;
   return mesh;
 }
 
