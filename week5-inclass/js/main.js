@@ -14,6 +14,8 @@ let plane;
 
 function setupThree() {
 
+  scene.fog = new THREE.Fog( 0xFF0000, 1, 1000 );
+
 
  plane = getPlane();
  scene.add(plane);
