@@ -8,8 +8,8 @@ let params = {
   maxPlanetRadius: 50,
   minRings: 5,
   maxRings: 20,
-  minRingRadius: 200,
-  maxRingRadius: 300,
+  minRingRadius: 100,
+  maxRingRadius: 200,
   rotationSpeed: 0.01,
 };
 
@@ -26,30 +26,28 @@ function setupThree() {
   scene.background = new THREE.Color(0x000000);
   // scene.fog = new THREE.Fog(0xDAB785, 1, 2000);
 
-  //spotlight 
-  spotLight = new THREE.SpotLight(0xffffff, 100, 1000, Math.PI / 4, 1.0, 0.01);
-  spotLight.position.set(0, 300, 0);
+  //spotlight
+  spotLight = new THREE.SpotLight(0xffffff, 100, WORLD_SIZE, Math.PI / 7, 0, 0.4);
+  spotLight.position.set(0, -FLOOR_POSITION*5, 0);
   spotLight.castShadow = true;
   scene.add(spotLight);
 
   let sphere = getLightSphere();
-  sphere.scale.set(20, 20, 20);
+  sphere.scale.set(10, 10, 10);
   spotLight.add(sphere);
-
-
 
   //SPOTLIGHT HELPER
 
-   //SPOTLIGHT TARGET
-   spotLightTarget = getBox();
-   spotLightTarget.position.set(0, -FLOOR_POSITION, 0);
-   spotLightTarget.scale.set(20, 20, 20);
-   spotLightTarget.material = new THREE.MeshBasicMaterial({
-     color: 0xff00ff,
-   });
+  //SPOTLIGHT TARGET
+  spotLightTarget = getBox();
+  spotLightTarget.position.set(0, -FLOOR_POSITION, 0);
+  spotLightTarget.scale.set(0, 0, 0);
+  spotLightTarget.material = new THREE.MeshBasicMaterial({
+    color: 0xff00ff,
+  });
 
-   spotLight.target = spotLightTarget;
-   scene.add(spotLightTarget);
+  spotLight.target = spotLightTarget;
+  scene.add(spotLightTarget);
 
   //plane
   plane = getPlane();
@@ -76,20 +74,22 @@ function setupThree() {
 function updateThree() {
   planets.forEach((planet) => planet.update());
 
-    spotLightTarget.position.x = sin(frame * 0.01) * 300;
+  spotLightTarget.position.x = sin(frame * 0.01) * 300;
   spotLightTarget.position.z = cos(frame * 0.01) * 300;
-
 }
 
 function getRing(innerRadius, outerRadius, thisColor) {
   const geometry = new THREE.RingGeometry(innerRadius, outerRadius, 64);
-  const material = new THREE.MeshBasicMaterial({
+  const material = new THREE.MeshStandardMaterial({
     color: thisColor,
     side: THREE.DoubleSide,
     transparent: true,
     opacity: 0.7,
   });
-  return new THREE.Mesh(geometry, material);
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  return mesh;
 }
 
 function getPlane() {
@@ -136,7 +136,7 @@ class Ring {
   }
 }
 
-function getLightSphere(){
+function getLightSphere() {
   const geometry = new THREE.SphereGeometry(10, 32, 32);
   const material = new THREE.MeshBasicMaterial({ color: 0x000000 });
   return new THREE.Mesh(geometry, material);
@@ -147,8 +147,11 @@ function getSphere(thisColor) {
     params.maxPlanetRadius
   );
   const geometry = new THREE.SphereGeometry(radius, 32, 32);
-  const material = new THREE.MeshBasicMaterial({ color: thisColor });
-  return new THREE.Mesh(geometry, material);
+  const material = new THREE.MeshStandardMaterial({ color: thisColor });
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  return mesh;
 }
 
 class Planet {
@@ -157,9 +160,11 @@ class Planet {
     this.color = new THREE.Color(Math.random(), Math.random(), Math.random());
     this.addSphere();
     this.createRings();
+    this.xoff = random(10);
+    this.yoff = random(10);
     this.group.position.set(
-      Math.random() * WORLD_SIZE - WORLD_HALF_SIZE,
-      Math.random() * WORLD_HALF_SIZE,
+      (Math.random() * WORLD_SIZE - WORLD_HALF_SIZE)/2,
+      Math.random() * WORLD_HALF_SIZE/3,
       Math.random() * WORLD_SIZE - WORLD_HALF_SIZE
     );
     scene.add(this.group);
@@ -187,6 +192,10 @@ class Planet {
 
   update() {
     this.rings.forEach((ring) => ring.update());
+    this.group.position.x += sin(this.xoff);
+    this.group.position.y += cos(this.yoff);
+    this.xoff +=0.01;
+    this.yoff += 0.01;
   }
 
   updateSphereSize() {
