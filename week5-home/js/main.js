@@ -1,36 +1,55 @@
 const WORLD_SIZE = 2000;
 const WORLD_HALF_SIZE = 1000;
-const FLOOR_POSITION = -200;
+const FLOOR_POSITION = -300;
 
 let params = {
-  numPlanets: 5,
-  minPlanetRadius: 3,
-  maxPlanetRadius: 8,
+  numPlanets: 10,
+  minPlanetRadius: 40,
+  maxPlanetRadius: 50,
   minRings: 5,
   maxRings: 20,
-  minRingRadius: 10,
-  maxRingRadius: 50,
+  minRingRadius: 200,
+  maxRingRadius: 300,
   rotationSpeed: 0.01,
 };
 
 let planets = [];
 let plane;
+let spotLight;
+
+let spotLightHelper, spotLightTarget;
 
 function setupThree() {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-  scene.background = new THREE.Color(0x04395E);
-  scene.fog = new THREE.Fog(0xDAB785, 1, 2000);
+  scene.background = new THREE.Color(0x000000);
+  // scene.fog = new THREE.Fog(0xDAB785, 1, 2000);
 
   //spotlight 
-
   spotLight = new THREE.SpotLight(0xffffff, 100, 1000, Math.PI / 4, 1.0, 0.01);
   spotLight.position.set(0, 300, 0);
   spotLight.castShadow = true;
   scene.add(spotLight);
 
+  let sphere = getLightSphere();
+  sphere.scale.set(20, 20, 20);
+  spotLight.add(sphere);
 
+
+
+  //SPOTLIGHT HELPER
+
+   //SPOTLIGHT TARGET
+   spotLightTarget = getBox();
+   spotLightTarget.position.set(0, -FLOOR_POSITION, 0);
+   spotLightTarget.scale.set(20, 20, 20);
+   spotLightTarget.material = new THREE.MeshBasicMaterial({
+     color: 0xff00ff,
+   });
+
+   spotLight.target = spotLightTarget;
+   scene.add(spotLightTarget);
 
   //plane
   plane = getPlane();
@@ -49,13 +68,17 @@ function setupThree() {
   gui.add(params, "numPlanets", 1, 20, 1).onChange(updatePlanetCount);
   gui.add(params, "minRings", 1, 15, 1).onChange(updateRingCount);
   gui.add(params, "maxRings", 15, 50, 1).onChange(updateRingCount);
-  gui.add(params, "minRingRadius", 5, 30, 1).onChange(updateRingRadii);
-  gui.add(params, "maxRingRadius", 31, 100, 1).onChange(updateRingRadii);
+  gui.add(params, "minRingRadius", 100, 300, 1).onChange(updateRingRadii);
+  gui.add(params, "maxRingRadius", 400, 700, 1).onChange(updateRingRadii);
   gui.add(params, "rotationSpeed", 0, 0.1);
 }
 
 function updateThree() {
   planets.forEach((planet) => planet.update());
+
+    spotLightTarget.position.x = sin(frame * 0.01) * 300;
+  spotLightTarget.position.z = cos(frame * 0.01) * 300;
+
 }
 
 function getRing(innerRadius, outerRadius, thisColor) {
@@ -80,12 +103,22 @@ function getPlane() {
   return mesh;
 }
 
+function getBox() {
+  const geometry = new THREE.BoxGeometry(1, 1, 1);
+  const material = new THREE.MeshStandardMaterial();
+
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  return mesh;
+}
+
 class Ring {
   constructor(radius, color) {
     this.radius = radius;
     this.color = color;
     this.mesh = getRing(radius - 0.5, radius + 0.5, this.color);
-    this.mesh.rotation.x = random(Math.PI * 2);
+    this.mesh.rotation.x = Math.random() * Math.PI * 2;
   }
 
   update() {
@@ -103,6 +136,11 @@ class Ring {
   }
 }
 
+function getLightSphere(){
+  const geometry = new THREE.SphereGeometry(10, 32, 32);
+  const material = new THREE.MeshBasicMaterial({ color: 0x000000 });
+  return new THREE.Mesh(geometry, material);
+}
 function getSphere(thisColor) {
   const radius = THREE.MathUtils.randFloat(
     params.minPlanetRadius,
@@ -110,8 +148,7 @@ function getSphere(thisColor) {
   );
   const geometry = new THREE.SphereGeometry(radius, 32, 32);
   const material = new THREE.MeshBasicMaterial({ color: thisColor });
-  this.mesh = new THREE.Mesh(geometry, material);
-  return this.mesh;
+  return new THREE.Mesh(geometry, material);
 }
 
 class Planet {
@@ -120,12 +157,17 @@ class Planet {
     this.color = new THREE.Color(Math.random(), Math.random(), Math.random());
     this.addSphere();
     this.createRings();
-    this.setRandomPosition();
+    this.group.position.set(
+      Math.random() * WORLD_SIZE - WORLD_HALF_SIZE,
+      Math.random() * WORLD_HALF_SIZE,
+      Math.random() * WORLD_SIZE - WORLD_HALF_SIZE
+    );
     scene.add(this.group);
   }
 
   addSphere() {
-    this.group.add(getSphere(this.color));
+    this.sphere = getSphere(this.color);
+    this.group.add(this.sphere);
   }
 
   createRings() {
@@ -141,15 +183,6 @@ class Planet {
       this.rings.push(ring);
       this.group.add(ring.mesh);
     }
-  }
-
-  setRandomPosition() {
-    const range = 200;
-    this.group.position.set(
-      THREE.MathUtils.randFloatSpread(range),
-      THREE.MathUtils.randFloatSpread(range),
-      THREE.MathUtils.randFloatSpread(range)
-    );
   }
 
   update() {
