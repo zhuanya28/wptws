@@ -27,7 +27,7 @@ function setupThree() {
   // scene.fog = new THREE.Fog(0xDAB785, 1, 2000);
 
   //spotlight
-  spotLight = new THREE.SpotLight(0xffffff, 100, WORLD_SIZE, Math.PI / 7, 0, 0.4);
+  spotLight = new THREE.SpotLight(0xffffff, 100, WORLD_SIZE, Math.PI / 7, 0, 0.3);
   spotLight.position.set(0, -FLOOR_POSITION*5, 0);
   spotLight.castShadow = true;
   scene.add(spotLight);
