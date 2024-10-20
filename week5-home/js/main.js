@@ -9,7 +9,7 @@ let params = {
   minRings: 5,
   maxRings: 20,
   minRingRadius: 100,
-  maxRingRadius: 200,
+  maxRingRadius: 300,
   rotationSpeed: 0.01,
 };
 
@@ -25,15 +25,22 @@ function setupThree() {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-  scene.background = new THREE.Color(0x000000);
-  // // scene.fog = new THREE.Fog(0xDAB785, 1, 1000);
+  scene.background = new THREE.Color(0x2660a4);
+  scene.fog = new THREE.Fog(0x2660a4, 1, 4000);
 
   // const ambilight = new THREE.AmbientLight("#FFFFFF"); // soft white light
   // scene.add(ambilight);
 
   //spotlight
-  spotLight = new THREE.SpotLight(0xffffff, 100, WORLD_SIZE, Math.PI / 7, 0, 0.3);
-  spotLight.position.set(0, -FLOOR_POSITION*5, 0);
+  spotLight = new THREE.SpotLight(
+    0xfefffe,
+    100,
+    WORLD_SIZE,
+    Math.PI / 4,
+    0,
+    0.3
+  );
+  spotLight.position.set(0, -FLOOR_POSITION * 4, 0);
   spotLight.castShadow = true;
   scene.add(spotLight);
 
@@ -47,7 +54,7 @@ function setupThree() {
   spotLightTarget = getBox();
   spotLightTarget.position.set(0, -FLOOR_POSITION, 0);
   spotLightTarget.scale.set(0, 0, 0);
-  spotLightTarget.material = new THREE.MeshBasicMaterial({
+  spotLightTarget.material = new THREE.MeshStandardMaterial({
     color: 0xff00ff,
   });
 
@@ -57,7 +64,7 @@ function setupThree() {
   //plane
   plane = getPlane();
   scene.add(plane);
-  plane.scale.set(WORLD_SIZE*2, WORLD_SIZE*2, 1);
+  plane.scale.set(WORLD_SIZE * 2, WORLD_SIZE * 2, 1);
   plane.rotation.x = -Math.PI / 2;
   plane.position.y = FLOOR_POSITION;
 
@@ -67,24 +74,26 @@ function setupThree() {
     planets.push(planet);
   }
 
-
   let distance = 200;
-for (let z = -WORLD_SIZE; z <= WORLD_SIZE; z += distance) {
-  for (let x = -WORLD_SIZE; x <= WORLD_SIZE; x += distance) {
-    let height = random(1, 20);
-    let tCone = new Cone()
-      .setPosition(x, FLOOR_POSITION, z)
-      .setScale(distance/5, height, distance/5)
-    cones.push(tCone);
+  for (let z = -WORLD_SIZE; z <= WORLD_SIZE; z += distance) {
+    for (let x = -WORLD_SIZE; x <= WORLD_SIZE; x += distance) {
+      let height = random(1, 20);
+
+      if (Math.random() > 0.5) {
+        let tCone = new Cone()
+          .setPosition(x, FLOOR_POSITION, z)
+          .setScale(distance / 5, height, distance / 5);
+        cones.push(tCone);
+      }
+    }
   }
-}
 
   // GUI setup
   gui.add(params, "numPlanets", 1, 20, 1).onChange(updatePlanetCount);
   gui.add(params, "minRings", 1, 15, 1).onChange(updateRingCount);
   gui.add(params, "maxRings", 15, 50, 1).onChange(updateRingCount);
-  gui.add(params, "minRingRadius", 100, 300, 1).onChange(updateRingRadii);
-  gui.add(params, "maxRingRadius", 400, 700, 1).onChange(updateRingRadii);
+  gui.add(params, "minRingRadius", 50, 150, 1).onChange(updateRingRadii);
+  gui.add(params, "maxRingRadius", 150, 500, 1).onChange(updateRingRadii);
   gui.add(params, "rotationSpeed", 0, 0.1);
 }
 
@@ -93,7 +102,6 @@ function updateThree() {
 
   spotLightTarget.position.x = sin(frame * 0.01) * 300;
   spotLightTarget.position.z = cos(frame * 0.01) * 300;
-
 }
 
 function getRing(innerRadius, outerRadius, thisColor) {
@@ -113,7 +121,7 @@ function getRing(innerRadius, outerRadius, thisColor) {
 function getPlane() {
   const geometry = new THREE.PlaneGeometry(1, 1);
   const material = new THREE.MeshStandardMaterial({
-    color: 0xffffff,
+    color: 0xc47335,
     side: THREE.DoubleSide,
   });
   const mesh = new THREE.Mesh(geometry, material);
@@ -156,7 +164,7 @@ class Ring {
 
 function getLightSphere() {
   const geometry = new THREE.SphereGeometry(10, 32, 32);
-  const material = new THREE.MeshBasicMaterial({ color: 0x000000 });
+  const material = new THREE.MeshStandardMaterial({ color: 0x000000 });
   return new THREE.Mesh(geometry, material);
 }
 function getSphere(thisColor) {
@@ -181,8 +189,8 @@ class Planet {
     this.xoff = random(10);
     this.yoff = random(10);
     this.group.position.set(
-      (Math.random() * WORLD_SIZE - WORLD_HALF_SIZE)/2,
-      Math.random() * WORLD_HALF_SIZE/3,
+      (Math.random() * WORLD_SIZE - WORLD_HALF_SIZE) / 2,
+      (Math.random() * WORLD_HALF_SIZE) / 3,
       Math.random() * WORLD_SIZE - WORLD_HALF_SIZE
     );
     scene.add(this.group);
@@ -212,7 +220,7 @@ class Planet {
     this.rings.forEach((ring) => ring.update());
     this.group.position.x += sin(this.xoff);
     this.group.position.y += cos(this.yoff);
-    this.xoff +=0.01;
+    this.xoff += 0.01;
     this.yoff += 0.01;
   }
 
@@ -280,34 +288,33 @@ function updatePlanetCount() {
   }
 }
 
-function getCone(){
-  const geometry = new THREE.ConeGeometry(5, 20, 4); 
+function getCone() {
+  const geometry = new THREE.ConeGeometry(5, 20, 4);
 
-  geometry.translate(0, 10, 0); // translated to align with plane easier 
-const material = new THREE.MeshStandardMaterial( {color: 0xffff00} );
-const mesh = new THREE.Mesh(geometry, material ); 
-mesh.castShadow = true;
-mesh.receiveShadow = true;
-return mesh;
-
+  geometry.translate(0, 10, 0); // translated to align with plane easier
+  const material = new THREE.MeshStandardMaterial({ color: 0xf19953 });
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  return mesh;
 }
 
 class Cone {
-    constructor() {
-      this.mesh = getCone();
-      scene.add(this.mesh);
-    }
-  
-    setPosition(x, y, z) {
-      this.mesh.position.set(x, y, z);
-      return this;
-    }
-  
-    setScale(w, h, d) {
-      this.mesh.scale.set(w, h, d);
-      return this;
-    }
+  constructor() {
+    this.mesh = getCone();
+    scene.add(this.mesh);
   }
+
+  setPosition(x, y, z) {
+    this.mesh.position.set(x, y, z);
+    return this;
+  }
+
+  setScale(w, h, d) {
+    this.mesh.scale.set(w, h, d);
+    return this;
+  }
+}
 
 function updatePlanetSizes() {
   planets.forEach((planet) => planet.updateSphereSize());
