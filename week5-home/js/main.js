@@ -13,6 +13,8 @@ let params = {
   rotationSpeed: 0.01,
 };
 
+let cones = [];
+
 let planets = [];
 let plane;
 let spotLight;
@@ -24,7 +26,10 @@ function setupThree() {
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   scene.background = new THREE.Color(0x000000);
-  // scene.fog = new THREE.Fog(0xDAB785, 1, 2000);
+  // // scene.fog = new THREE.Fog(0xDAB785, 1, 1000);
+
+  // const ambilight = new THREE.AmbientLight("#FFFFFF"); // soft white light
+  // scene.add(ambilight);
 
   //spotlight
   spotLight = new THREE.SpotLight(0xffffff, 100, WORLD_SIZE, Math.PI / 7, 0, 0.3);
@@ -52,7 +57,7 @@ function setupThree() {
   //plane
   plane = getPlane();
   scene.add(plane);
-  plane.scale.set(WORLD_SIZE, WORLD_SIZE, 1);
+  plane.scale.set(WORLD_SIZE*2, WORLD_SIZE*2, 1);
   plane.rotation.x = -Math.PI / 2;
   plane.position.y = FLOOR_POSITION;
 
@@ -61,6 +66,18 @@ function setupThree() {
     let planet = new Planet();
     planets.push(planet);
   }
+
+
+  let distance = 200;
+for (let z = -WORLD_SIZE; z <= WORLD_SIZE; z += distance) {
+  for (let x = -WORLD_SIZE; x <= WORLD_SIZE; x += distance) {
+    let height = random(1, 20);
+    let tCone = new Cone()
+      .setPosition(x, FLOOR_POSITION, z)
+      .setScale(distance/5, height, distance/5)
+    cones.push(tCone);
+  }
+}
 
   // GUI setup
   gui.add(params, "numPlanets", 1, 20, 1).onChange(updatePlanetCount);
@@ -76,6 +93,7 @@ function updateThree() {
 
   spotLightTarget.position.x = sin(frame * 0.01) * 300;
   spotLightTarget.position.z = cos(frame * 0.01) * 300;
+
 }
 
 function getRing(innerRadius, outerRadius, thisColor) {
@@ -261,6 +279,35 @@ function updatePlanetCount() {
     planets.push(planet);
   }
 }
+
+function getCone(){
+  const geometry = new THREE.ConeGeometry(5, 20, 4); 
+
+  geometry.translate(0, 10, 0); // translated to align with plane easier 
+const material = new THREE.MeshStandardMaterial( {color: 0xffff00} );
+const mesh = new THREE.Mesh(geometry, material ); 
+mesh.castShadow = true;
+mesh.receiveShadow = true;
+return mesh;
+
+}
+
+class Cone {
+    constructor() {
+      this.mesh = getCone();
+      scene.add(this.mesh);
+    }
+  
+    setPosition(x, y, z) {
+      this.mesh.position.set(x, y, z);
+      return this;
+    }
+  
+    setScale(w, h, d) {
+      this.mesh.scale.set(w, h, d);
+      return this;
+    }
+  }
 
 function updatePlanetSizes() {
   planets.forEach((planet) => planet.updateSphereSize());
