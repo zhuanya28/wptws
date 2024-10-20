@@ -4,8 +4,8 @@ const FLOOR_POSITION = -300;
 
 let params = {
   numPlanets: 10,
-  minPlanetRadius: 40,
-  maxPlanetRadius: 50,
+  minPlanetRadius: 5,
+  maxPlanetRadius: 60,
   minRings: 5,
   maxRings: 20,
   minRingRadius: 100,
@@ -145,7 +145,7 @@ function updateThree() {
   moonLight.position.y = sin(frame * 0.005+ Math.PI) * WORLD_HALF_SIZE;
   if (moonLight.position.y < 0) {
     moonLightTarget.position.y = -WORLD_SIZE;
-    currentColor = "#A3320B"
+    currentColor = "#A25716"
   }
 
   moonLightTarget.position.x = moonLight.position.x;
