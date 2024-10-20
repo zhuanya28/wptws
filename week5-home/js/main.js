@@ -20,7 +20,7 @@ let plane;
 let spotLight;
 
 let sunLight, moonLight;
-let sunOrbit, moonOrbit;
+let sunLightTarget, moonLightTarget;
 
 let spotLightHelper, spotLightTarget;
 
@@ -28,76 +28,67 @@ function setupThree() {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-  scene.background = new THREE.Color(0x2660a4);
-  // scene.fog = new THREE.Fog(0x2660a4, 1, 4000);
+  scene.background = new THREE.Color(0xFFFFFF);
+  scene.fog = new THREE.Fog(0xFFFFFF, 1, 4000);
 
-  // const ambilight = new THREE.AmbientLight("#FFFFFF"); // soft white light
-  // scene.add(ambilight);
-
-  //SUN
+  //sun light
   sunLight = new THREE.SpotLight(
-    0xfefffe,
-    100,
-    WORLD_SIZE,
-    Math.PI / 4,
+    0xE6AF2E,
+    2000,
+    WORLD_SIZE * 1.5,
+    Math.PI / 2,
     0,
-    0.3
+    0.7
   );
-  sunLight.position.set(0, -FLOOR_POSITION*2, 0);
+  sunLight.position.set(WORLD_HALF_SIZE, 0, WORLD_HALF_SIZE);
   sunLight.castShadow = true;
-  let sunSphere = getLightSphere(0xffff00, 20);
-  sunLight.add(sunSphere);
+  scene.add(sunLight);
 
-  sunLightTarget = 
+  let sun = getLightSphere(0xE6AF2E, 1);
+  sun.scale.set(100, 100, 100);
+  sunLight.add(sun);
 
-
-
-  //MOON
-  moonLight = new THREE.SpotLight(
-    0xaaaaff,
-    50,
-    WORLD_SIZE,
-    Math.PI / 4,
-    0,
-    0.3
-  );
-  moonLight.castShadow = true;
-  moonOrbit = new THREE.Group();
-  moonOrbit.add(moonLight);
-  scene.add(moonOrbit);
-
-  let moonSphere = getLightSphere(0xaaaaff, 10);
-  moonLight.add(moonSphere);
-
-  //spotlight
-  spotLight = new THREE.SpotLight(
-    0xfefffe,
-    100,
-    WORLD_SIZE,
-    Math.PI / 4,
-    0,
-    0.3
-  );
-  spotLight.position.set(WORLD_HALF_SIZE, 0, WORLD_HALF_SIZE);
-  spotLight.castShadow = true;
-  scene.add(spotLight);
-
-  let sphere = getLightSphere();
-  sphere.scale.set(5, 5, 5);
-  spotLight.add(sphere);
-
-  // //SPOTLIGHT HELPER
-
-  // //SPOTLIGHT TARGET
-  spotLightTarget = getBox();
-  spotLightTarget.position.set(0, -FLOOR_POSITION, 0);
-  spotLightTarget.scale.set(0, 0, 0);
-  spotLightTarget.material = new THREE.MeshStandardMaterial({
-    color: 0xff00ff,
+  // sunlight target
+  sunLightTarget = getBox();
+  sunLightTarget.position.set(0, 0, 0);
+  sunLightTarget.scale.set(0, 0, 0);
+  sunLightTarget.material = new THREE.MeshStandardMaterial({
+    color: 0xE6AF2E,
   });
 
-  spotLight.target = spotLightTarget;
-  scene.add(spotLightTarget);
+  sunLight.target = sunLightTarget;
+  scene.add(sunLightTarget);
+
+  //moon light
+  moonLight = new THREE.SpotLight(
+    0xB1C6FF,
+    1500,
+    WORLD_SIZE * 1.5,
+    Math.PI / 2,
+    0,
+    0.7
+  );
+
+  moonLight.position.set(WORLD_HALF_SIZE, 0, WORLD_HALF_SIZE);
+  moonLight.castShadow = true;
+  scene.add(moonLight);
+
+  let moon = getLightSphere(0x0E34A0, 1);
+  moon.scale.set(50, 50, 50);
+  moonLight.add(moon);
+
+  //moonlight target
+  moonLightTarget = getBox();
+  moonLightTarget.position.set(0, 0, 0);
+  moonLightTarget.scale.set(0, 0, 0);
+  moonLightTarget.material = new THREE.MeshStandardMaterial({
+    color: 0x0E34A0,
+  });
+
+  moonLight.target = moonLightTarget;
+  scene.add(sunLightTarget);
+
+
 
   //plane
   plane = getPlane();
@@ -133,47 +124,40 @@ function setupThree() {
   gui.add(params, "minRingRadius", 50, 150, 1).onChange(updateRingRadii);
   gui.add(params, "maxRingRadius", 150, 500, 1).onChange(updateRingRadii);
   gui.add(params, "baseRotationSpeed", 0, 0.05).name("Base Rotation Speed");
-  gui.add(sunLight, "intensity", 0, 200).name("Sun Intensity");
-  gui.add(moonLight, "intensity", 0, 100).name("Moon Intensity");
 }
+
+let currentColor;
 
 function updateThree() {
   planets.forEach((planet) => planet.update());
 
-  spotLight.position.y = cos(frame * 0.01) * WORLD_SIZE-WORLD_HALF_SIZE;
-  spotLight.position.x = sin(frame * 0.01) * WORLD_SIZE-WORLD_HALF_SIZE;
-  spotLight.position.z = cos(frame * 0.01) * WORLD_SIZE- WORLD_HALF_SIZE;
-  spotLightTarget.position.x = sin(frame * 0.01) * 500;
-  spotLightTarget.position.z = cos(frame * 0.01) * 500;
+  sunLight.position.y = sin(frame * 0.005) * WORLD_HALF_SIZE;
+  if (sunLight.position.y < 0) {
+    sunLightTarget.position.y = -WORLD_SIZE;
+    currentColor = "#2F3061"
+  }
+
+  sunLightTarget.position.x = sunLight.position.x;
+  sunLightTarget.position.z = sunLight.position.z;
+  sunLight.position.x = cos(frame * 0.005) * (WORLD_SIZE + 50);
+  sunLight.position.z = 0;
+
+  moonLight.position.y = sin(frame * 0.005+ Math.PI) * WORLD_HALF_SIZE;
+  if (moonLight.position.y < 0) {
+    moonLightTarget.position.y = -WORLD_SIZE;
+    currentColor = "#A3320B"
+  }
+
+  moonLightTarget.position.x = moonLight.position.x;
+  moonLightTarget.position.z = moonLight.position.z;
+  moonLight.position.x = cos(frame * 0.005+ Math.PI) * (WORLD_SIZE + 50);
+  moonLight.position.z = 0;
 
 
-  // let sunAngle = frame * 0.005;
-  // sunOrbit.rotation.y = sunAngle;
-  // sunLight.position.set(
-  //   Math.cos(sunAngle) * WORLD_HALF_SIZE,
-  //   WORLD_HALF_SIZE / 2,
-  //   Math.sin(sunAngle) * WORLD_HALF_SIZE
-  // );
+  //little adjustments
+  scene.background = new THREE.Color(currentColor);
+  scene.fog = new THREE.Fog(currentColor, 1, 4000);
 
-  // let moonAngle = frame * 0.01 + Math.PI; // Offset by PI to start on opposite side
-  // moonOrbit.rotation.y = moonAngle;
-  // moonLight.position.set(
-  //   Math.cos(moonAngle) * WORLD_HALF_SIZE,
-  //   WORLD_HALF_SIZE / 2,
-  //   Math.sin(moonAngle) * WORLD_HALF_SIZE
-  // );
-
-  // let dayColor = new THREE.Color(0x2660a4);
-  // let nightColor = new THREE.Color(0x0a1a2a);
-  // let sunHeight = (Math.sin(sunAngle) + 1) / 2; // 0 to 1
-
-
-  // //all little adjustments
-  // scene.background.copy(dayColor).lerp(nightColor, 1 - sunHeight);
-  // scene.fog.color.copy(scene.background);
-
-  // sunLight.intensity = 100 * Math.max(0, Math.sin(sunAngle));
-  // moonLight.intensity = 30 * Math.max(0, -Math.sin(sunAngle));
 }
 
 function getRing(innerRadius, outerRadius, thisColor) {
@@ -182,7 +166,7 @@ function getRing(innerRadius, outerRadius, thisColor) {
     color: thisColor,
     side: THREE.DoubleSide,
     transparent: true,
-    opacity: 0.7,
+    opacity: 0.9,
   });
   const mesh = new THREE.Mesh(geometry, material);
   mesh.castShadow = true;
@@ -193,7 +177,7 @@ function getRing(innerRadius, outerRadius, thisColor) {
 function getPlane() {
   const geometry = new THREE.PlaneGeometry(1, 1);
   const material = new THREE.MeshStandardMaterial({
-    color: 0x2660a4,
+    color: 0x6B0504,
     side: THREE.DoubleSide,
   });
   const mesh = new THREE.Mesh(geometry, material);
@@ -377,7 +361,7 @@ function getCone() {
   const geometry = new THREE.ConeGeometry(5, 20, 4);
 
   geometry.translate(0, 10, 0); // translated to align with plane easier
-  const material = new THREE.MeshStandardMaterial({ color: 0xf19953 });
+  const material = new THREE.MeshStandardMaterial({ color: 0x6B0504 });
   const mesh = new THREE.Mesh(geometry, material);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
