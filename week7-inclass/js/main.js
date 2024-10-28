@@ -1,20 +1,48 @@
 let params = {
-  // (add)
+  numOfPoints: 0,
+  numOfParticles: 0
 };
 
 const WORLD_SIZE = 1000;
 const WORLD_HALF_SIZE = 500;
 let pointCloud;
+let particles = [];
 
 function setupThree() {
   pointCloud = getPoints();
   scene.add(pointCloud);
+
+  gui.add(params, "numOfPoints" ).listen();
+  gui.add(params, "numOfParticles" ).listen();
+
 }
 
 function updateThree() {
-  pointCloud.rotation.x += 0.01;
-  pointCloud.rotation.y += 0.01;
-  pointCloud.rotation.z += 0.01;
+  // pointCloud.rotation.x += 0.01;
+  // pointCloud.rotation.y += 0.01;
+  // pointCloud.rotation.z += 0.01;
+
+  for (let i = 0; i < particles.length; i++){
+    let p = particles[i];
+    p.move();
+  }
+
+  let posArray = pointCloud.geometry.attributes.position.array;
+  for (let i = 0; i < posArray.length; i+=3){
+    let particleIndex = i/3;
+    let p = particles[particleIndex];
+
+
+    posArray[i+0] = p.pos.x;
+    posArray[i+1] = p.pos.y;
+    posArray[i+2] = p.pos.z;
+  }
+
+  pointCloud.geometry.attributes.position.needsUpdate = true;
+
+
+  params.numOfPoints = pointCloud.geometry.attributes.position.count;
+  params.numOfParticles = particles.length;
 }
 
 function getPoints() {
@@ -25,14 +53,19 @@ function getPoints() {
 
 
 
-
+  
     // SPHERE-LIKE 2
-    // let vector = new p5.Vector.random3D();
-    // vector.mult(random(500));
+    let vector = new p5.Vector.random3D();
+    vector.mult(random(500));
 
-    // vertices[i + 0] = vector.x;
-    // vertices[i + 1] =  vector.y;
-    // vertices[i + 2] =  vector.z;
+    vertices[i + 0] = vector.x;
+    vertices[i + 1] =  vector.y;
+    vertices[i + 2] =  vector.z;
+
+    let tParticle = new Particle()
+      .setPosition(vector.x, vector.y, vector.z)
+      .setVelocity(random(-5, 5), random(-5, 5), random(-5, 5))
+    particles.push(tParticle);
 
 
     // SPHERE-LIKE
