@@ -2,7 +2,7 @@ let params = {
   numOfPoints: 0,
   numOfParticles: 0
 };
-
+let NUM_OF_POINTS = 10000;
 const WORLD_SIZE = 1000;
 const WORLD_HALF_SIZE = 500;
 let pointCloud;
@@ -12,8 +12,8 @@ function setupThree() {
   pointCloud = getPoints();
   scene.add(pointCloud);
 
-  gui.add(params, "numOfPoints" ).listen();
-  gui.add(params, "numOfParticles" ).listen();
+  gui.add(params, "numOfPoints").listen();
+  gui.add(params, "numOfParticles").listen();
 
 }
 
@@ -22,23 +22,49 @@ function updateThree() {
   // pointCloud.rotation.y += 0.01;
   // pointCloud.rotation.z += 0.01;
 
-  for (let i = 0; i < particles.length; i++){
-    let p = particles[i];
-    p.move();
+
+
+  for (let i = 0; i < 10; i++) {
+    let x = cos(frame * 0.01) * WORLD_HALF_SIZE;
+    let y = sin(frame * 0.01) * WORLD_HALF_SIZE;
+    let tParticle = new Particle()
+      .setPosition(x, y, 0)
+      .setVelocity(random(-0.5, 0.5), random(-0.5, 0.5), random(-0.5, 0.5))
+    particles.push(tParticle);
   }
 
   let posArray = pointCloud.geometry.attributes.position.array;
-  for (let i = 0; i < posArray.length; i+=3){
-    let particleIndex = i/3;
-    let p = particles[particleIndex];
+  let colorArray = pointCloud.geometry.attributes.color.array;
 
 
-    posArray[i+0] = p.pos.x;
-    posArray[i+1] = p.pos.y;
-    posArray[i+2] = p.pos.z;
+
+  for (let i = 0; i < particles.length; i++) {
+    let p = particles[i];
+    p.move();
+    p.age();
+
+    let ptIndex = i * 3;
+    posArray[ptIndex] = p.pos.x;
+    posArray[ptIndex + 1] = p.pos.y;
+    posArray[ptIndex + 2] = p.pos.z;
+
+
+    colorArray[ptIndex] = p.r * p.lifespan;
+    colorArray[ptIndex + 1] = p.g * p.lifespan;
+    colorArray[ptIndex + 2] = p.b * p.lifespan;
+    if (p.isDone) {
+      particles.splice(i, 1);
+      i--;
+    }
+
+  }
+  while (particles.length > NUM_OF_POINTS) {
+    particles.splice(0, 1);
   }
 
   pointCloud.geometry.attributes.position.needsUpdate = true;
+  pointCloud.geometry.attributes.color.needsUpdate = true;
+  pointCloud.geometry.setDrawRange(0, particles.length);
 
 
   params.numOfPoints = pointCloud.geometry.attributes.position.count;
@@ -46,47 +72,47 @@ function updateThree() {
 }
 
 function getPoints() {
-  const vertices = [];
-
-  for (let i = 0; i < 50000 * 3; i += 3) {
 
 
 
 
-  
-    // SPHERE-LIKE 2
-    let vector = new p5.Vector.random3D();
-    vector.mult(random(500));
+  // const vertices = [];
 
-    vertices[i + 0] = vector.x;
-    vertices[i + 1] =  vector.y;
-    vertices[i + 2] =  vector.z;
+  // for (let i = 0; i < 50000 * 3; i += 3) {
 
-    let tParticle = new Particle()
-      .setPosition(vector.x, vector.y, vector.z)
-      .setVelocity(random(-5, 5), random(-5, 5), random(-5, 5))
-    particles.push(tParticle);
+  //   // SPHERE-LIKE 2
+  //   let vector = new p5.Vector.random3D();
+  //   vector.mult(random(500));
+
+  //   vertices[i + 0] = vector.x;
+  //   vertices[i + 1] =  vector.y;
+  //   vertices[i + 2] =  vector.z;
+
+  // let tParticle = new Particle()
+  //   .setPosition(vector.x, vector.y, vector.z)
+  //   .setVelocity(random(-5, 5), random(-5, 5), random(-5, 5))
+  // particles.push(tParticle);
 
 
-    // SPHERE-LIKE
-    // let vector = new p5.Vector.random3D();
-    // vector.mult(500);
+  // SPHERE-LIKE
+  // let vector = new p5.Vector.random3D();
+  // vector.mult(500);
 
-    // vertices[i + 0] = vector.x;
-    // vertices[i + 1] =  vector.y;
-    // vertices[i + 2] =  vector.z;
-    
-    
-    // RING-LIKE
-    // vertices[i + 0] = cos(i) * 500;
-    // vertices[i + 1] = sin(i) * 500;
-    // vertices[i + 2] = random(-100, 100);
+  // vertices[i + 0] = vector.x;
+  // vertices[i + 1] =  vector.y;
+  // vertices[i + 2] =  vector.z;
 
-    // BOX-LIKE
-    //   vertices[i+0] = random(-500, 500);
-    //   vertices[i+1] = random(-500, 500);
-    //   vertices[i+2] = random(-500, 500);
-  }
+
+  // RING-LIKE
+  // vertices[i + 0] = cos(i) * 500;
+  // vertices[i + 1] = sin(i) * 500;
+  // vertices[i + 2] = random(-100, 100);
+
+  // BOX-LIKE
+  //   vertices[i+0] = random(-500, 500);
+  //   vertices[i+1] = random(-500, 500);
+  //   vertices[i+2] = random(-500, 500);
+  // }
 
   // for (let i = 0; i < 50000; i+= 1) {
   //   let x = random(-WORLD_HALF_SIZE, WORLD_HALF_SIZE);
@@ -95,14 +121,26 @@ function getPoints() {
   //   vertices.push(x, y, z);
   // }
 
+  const texture = new THREE.TextureLoader().load('assets/particle_texture.jpg');
+
+  const vertices = new Float32Array(NUM_OF_POINTS * 3);
   const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+
+  const colors = new Float32Array(NUM_OF_POINTS * 3);
+  geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
   geometry.setAttribute(
     "position",
     new THREE.Float32BufferAttribute(vertices, 3)
   );
-  const material = new THREE.PointsMaterial({ 
-    color: 0xffffff,
-    sizeAttenuation: true
+  const material = new THREE.PointsMaterial({
+    // color: 0xffffff,
+    vertexColors: true,
+    size: 10,
+    map: texture,
+    depthTest: false,
+    blending: THREE.AdditiveBlending
   });
   const mesh = new THREE.Points(geometry, material);
   return mesh;
@@ -123,6 +161,12 @@ class Particle {
     this.lifespan = 1.0;
     this.lifeReduction = random(0.001, 0.005);
     this.isDone = false;
+
+
+    this.r = 0.7;
+    this.g = 0.5;
+    this.b = 0;
+
   }
   setPosition(x, y, z) {
     this.pos = createVector(x, y, z);
