@@ -3,6 +3,7 @@ let params = {
 };
 
 const WORLD_SIZE = 1000;
+const WORLD_HALF_SIZE = 500;
 let pointCloud;
 
 function setupThree() {
@@ -13,25 +14,66 @@ function setupThree() {
 function updateThree() {
   pointCloud.rotation.x += 0.01;
   pointCloud.rotation.y += 0.01;
+  pointCloud.rotation.z += 0.01;
 }
 
 function getPoints() {
   const vertices = [];
 
-  for (let i = 0; i < 50000; i++) {
-    let x = random(-WORLD_SIZE / 2, WORLD_SIZE / 2);
-    let y = random(-WORLD_SIZE / 2, WORLD_SIZE / 2);
-    let z = random(-WORLD_SIZE / 2, WORLD_SIZE / 2);
-    vertices.push(x, y, z);
+  for (let i = 0; i < 50000 * 3; i += 3) {
+
+
+
+
+
+    // SPHERE-LIKE 2
+    // let vector = new p5.Vector.random3D();
+    // vector.mult(random(500));
+
+    // vertices[i + 0] = vector.x;
+    // vertices[i + 1] =  vector.y;
+    // vertices[i + 2] =  vector.z;
+
+
+    // SPHERE-LIKE
+    // let vector = new p5.Vector.random3D();
+    // vector.mult(500);
+
+    // vertices[i + 0] = vector.x;
+    // vertices[i + 1] =  vector.y;
+    // vertices[i + 2] =  vector.z;
+    
+    
+    // RING-LIKE
+    // vertices[i + 0] = cos(i) * 500;
+    // vertices[i + 1] = sin(i) * 500;
+    // vertices[i + 2] = random(-100, 100);
+
+    // BOX-LIKE
+    //   vertices[i+0] = random(-500, 500);
+    //   vertices[i+1] = random(-500, 500);
+    //   vertices[i+2] = random(-500, 500);
   }
 
+  // for (let i = 0; i < 50000; i+= 1) {
+  //   let x = random(-WORLD_HALF_SIZE, WORLD_HALF_SIZE);
+  //   let y = random(-WORLD_HALF_SIZE, WORLD_HALF_SIZE);
+  //   let z = random(-WORLD_HALF_SIZE, WORLD_HALF_SIZE);
+  //   vertices.push(x, y, z);
+  // }
+
   const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-  const material = new THREE.PointsMaterial({ color: 0xFFFFFF });
+  geometry.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute(vertices, 3)
+  );
+  const material = new THREE.PointsMaterial({ 
+    color: 0xffffff,
+    sizeAttenuation: true
+  });
   const mesh = new THREE.Points(geometry, material);
   return mesh;
 }
-
 
 // CLASS
 
@@ -69,7 +111,7 @@ class Particle {
     if (mass) {
       this.mass = mass;
     } else {
-      this.mass = 1 + (this.scl.x * this.scl.y * this.scl.z) * 0.000001; // arbitrary
+      this.mass = 1 + this.scl.x * this.scl.y * this.scl.z * 0.000001; // arbitrary
     }
     return this;
   }
@@ -120,7 +162,11 @@ class Particle {
     let yFreq = this.pos.y * 0.05 + frame * 0.005;
     let zFreq = this.pos.z * 0.05 + frame * 0.005;
     let noiseValue = map(noise(xFreq, yFreq, zFreq), 0.0, 1.0, -1.0, 1.0);
-    let force = new p5.Vector(cos(frame * 0.005), sin(frame * 0.005), sin(frame * 0.002));
+    let force = new p5.Vector(
+      cos(frame * 0.005),
+      sin(frame * 0.005),
+      sin(frame * 0.002)
+    );
     force.normalize();
     force.mult(noiseValue * 0.01);
     this.applyForce(force);
