@@ -1,123 +1,142 @@
 let params = {
   terrainColor: "#4CAF50",
   treeColor: "#228B22",
-  numberOfTrees: 50
+  trunkColor: "#8B4513",
+  terrainScale: 100,
+  treeCount: 50,
+  treeMinSize: 10,
+  treeMaxSize: 20,
+  ambientLightIntensity: 0.5,
+  directionalLightIntensity: 0.8
 };
 
 let terrain;
 let trees = [];
 
-let trunkMaterialColor = "#4A3F35";
-let terrainColor = "#0A3200";
-let treeColor = "#0A3200";
-let treeColorLight = "#228B22";
-
-class Tree {
-  constructor(x, y, z) {
-    const trunkGeometry = new THREE.CylinderGeometry(0.2, 0.2, 1, 8);
-    const leavesGeometry = new THREE.ConeGeometry(0.5, 1, 8);
-    const trunkMaterial = new THREE.MeshPhongMaterial({ color: trunkMaterialColor });
-    const leavesMaterial = new THREE.MeshPhongMaterial({ color: params.treeColor });
-
-    this.trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
-    this.leaves = new THREE.Mesh(leavesGeometry, leavesMaterial);
-
-    this.trunk.position.set(x, y, z);
-    this.leaves.position.set(x, y + 1, z);
-
-    this.group = new THREE.Group();
-    this.group.add(this.trunk);
-    this.group.add(this.leaves);
-  }
-
-  setColor(color) {
-    this.leaves.material.color.set(color);
-  }
-}
+let ambientLight;
+let directionalLight;
 
 function setupThree() {
   // Create terrain
   terrain = createTerrain();
   scene.add(terrain);
 
-  // Add trees
-  addTrees();
+  // Create trees
+  createTrees();
 
-  // Add lights
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+  ambientLight = new THREE.AmbientLight(0xffffff, params.ambientLightIntensity);
   scene.add(ambientLight);
 
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
-  directionalLight.position.set(1, 1, 1);
+  // Add directional light
+  directionalLight = new THREE.DirectionalLight(0xffffff, params.directionalLightIntensity);
+  directionalLight.position.set(5, 5, 5);
   scene.add(directionalLight);
 
+
   // Setup GUI
-  // gui.addColor(params, "terrainColor").onChange(updateTerrainColor);
-  // gui.addColor(params, "treeColor").onChange(updateTreesColor);
-  // gui.add(params, "numberOfTrees", 0, 200, 1).onChange(updateNumberOfTrees);
+  gui.addColor(params, "terrainColor");
+  gui.addColor(params, "treeColor");
+  gui.addColor(params, "trunkColor");
+  gui.add(params, "terrainScale", 50, 200).onChange(updateTerrainScale);
+  gui.add(params, "treeCount", 1, 100).step(1).onChange(updateTrees);
+  gui.add(params, "treeMinSize", 5, 50).onChange(updateTrees);
+  gui.add(params, "treeMaxSize", 10, 100).onChange(updateTrees);
+  gui.add(params, "ambientLightIntensity", 0, 1).onChange(updateLights);
+  gui.add(params, "directionalLightIntensity", 0, 1).onChange(updateLights);
 }
 
+
 function updateThree() {
-  // Any continuous updates can go here
+  terrain.material.color.set(params.terrainColor);
+  trees.forEach(tree => {
+    tree.children[0].material.color.set(params.trunkColor);
+    tree.children[1].material.color.set(params.treeColor);
+  });
 }
 
 function createTerrain() {
-  const geometry = getPlaneGeometry(100, 100, 128, 128);
+  const geometry = new THREE.PlaneGeometry(100, 100, 100, 100);
   const material = new THREE.MeshPhongMaterial({
-    color: terrainColor,
+    color: params.terrainColor,
     wireframe: false,
-    side: THREE.DoubleSide
+    flatShading: true
   });
 
   const terrain = new THREE.Mesh(geometry, material);
-  terrain.rotation.x = -Math.PI / 2;
 
-  // Create hills
-  const vertices = geometry.attributes.position.array;
+  // Generate terrain using Perlin noise
+  const vertices = terrain.geometry.attributes.position.array;
   for (let i = 0; i < vertices.length; i += 3) {
-    vertices[i + 2] = Math.sin(vertices[i] / 10) * Math.cos(vertices[i + 1] / 10) * 5;
+    const x = vertices[i] / params.terrainScale;
+    const y = vertices[i + 1] / params.terrainScale;
+    vertices[i + 2] = noise(x, y) * 10;
   }
-  geometry.attributes.position.needsUpdate = true;
-  geometry.computeVertexNormals();
 
+  terrain.geometry.attributes.position.needsUpdate = true;
+  terrain.geometry.computeVertexNormals();
+
+  terrain.rotation.x = -Math.PI / 2;
   return terrain;
 }
 
-function getPlaneGeometry(width = 1, height = 1, widthSegments = 1, heightSegments = 1) {
-  const geometry = new THREE.PlaneGeometry(width, height, widthSegments, heightSegments);
-  return geometry;
-}
+function createTrees() {
+  // Remove existing trees
+  trees.forEach(tree => scene.remove(tree));
+  trees = [];
 
-function addTrees() {
-  for (let i = 0; i < params.numberOfTrees; i++) {
+  // Create new trees
+  for (let i = 0; i < params.treeCount; i++) {
+    const tree = createTree();
     const x = Math.random() * 100 - 50;
     const z = Math.random() * 100 - 50;
     const y = getTerrainHeight(x, z);
-
-    const tree = new Tree(x, y, z);
+    tree.position.set(x, y, z);
+    scene.add(tree);
     trees.push(tree);
-    scene.add(tree.group);
   }
 }
 
+function createTree() {
+  const treeSize = Math.random() * (params.treeMaxSize - params.treeMinSize) + params.treeMinSize;
+  const trunkGeometry = new THREE.CylinderGeometry(0.2, 0.2, treeSize, 8);
+  const trunkMaterial = new THREE.MeshPhongMaterial({ color: params.trunkColor });
+  const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+
+  const leavesGeometry = new THREE.ConeGeometry(treeSize / 3, treeSize * 2 / 3, 8);
+  const leavesMaterial = new THREE.MeshPhongMaterial({ color: params.treeColor });
+  const leaves = new THREE.Mesh(leavesGeometry, leavesMaterial);
+  leaves.position.y = treeSize / 2;
+
+  const tree = new THREE.Group();
+  tree.add(trunk);
+  tree.add(leaves);
+  return tree;
+}
+
 function getTerrainHeight(x, z) {
-  // Simplified height calculation based on the terrain function
-  return Math.sin(x / 10) * Math.cos(z / 10) * 5;
+  const raycaster = new THREE.Raycaster();
+  raycaster.set(new THREE.Vector3(x, 100, z), new THREE.Vector3(0, -1, 0));
+  const intersects = raycaster.intersectObject(terrain);
+  return intersects.length > 0 ? intersects[0].point.y : 0;
 }
 
-function updateTerrainColor() {
-  terrain.material.color.set(params.terrainColor);
+function updateTerrainScale() {
+  const vertices = terrain.geometry.attributes.position.array;
+  for (let i = 0; i < vertices.length; i += 3) {
+    const x = vertices[i] / params.terrainScale;
+    const y = vertices[i + 1] / params.terrainScale;
+    vertices[i + 2] = noise.perlin2(x, y) * 10;
+  }
+  terrain.geometry.attributes.position.needsUpdate = true;
+  terrain.geometry.computeVertexNormals();
+  updateTrees();
 }
 
-function updateTreesColor() {
-  trees.forEach(tree => tree.setColor(params.treeColor));
+function updateTrees() {
+  createTrees();
 }
 
-function updateNumberOfTrees() {
-  // Remove existing trees
-  trees.forEach(tree => scene.remove(tree.group));
-  trees = [];
-
-  // Add new trees
-  addTrees();
+function updateLights() {
+  ambientLight.intensity = params.ambientLightIntensity;
+  directionalLight.intensity = params.directionalLightIntensity;
 }
