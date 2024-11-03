@@ -161,7 +161,7 @@ function createTerrain() {
   for (let i = 0; i < vertices.length; i += 3) {
     const x = vertices[i] / params.terrainScale;
     const y = vertices[i + 1] / params.terrainScale;
-    vertices[i + 2] = noise(x, y) * 20;
+    vertices[i + 2] = noise(x, y) * 40;
   }
 
   terrain.geometry.attributes.position.needsUpdate = true;
@@ -179,9 +179,9 @@ function createTrees() {
   // new trees
   for (let i = 0; i < params.treeCount; i++) {
     const tree = createTree();
-    const x = Math.random() * 100 - 50;
-    const z = Math.random() * 100 - 50;
-    const y = Math.random() * 10 + 5;
+    const x = Math.random() * WORLD_SIZE - WORLD_HALF_SIZE;
+    const z = Math.random() * WORLD_SIZE - WORLD_HALF_SIZE;
+    const y = Math.random() * 10 + 10;
     tree.position.set(x, y, z);
     scene.add(tree);
     trees.push(tree);
@@ -217,7 +217,7 @@ function updateTerrainScale() {
   for (let i = 0; i < vertices.length; i += 3) {
     const x = vertices[i] / params.terrainScale;
     const y = vertices[i + 1] / params.terrainScale;
-    vertices[i + 2] = noise.perlin2(x, y) * 100;
+    vertices[i + 2] = noise(x, y) * 100;
   }
   terrain.geometry.attributes.position.needsUpdate = true;
   terrain.geometry.computeVertexNormals();
@@ -228,18 +228,6 @@ function updateTrees() {
   createTrees();
 }
 
-
-
-function getPlane() {
-  const geometry = new THREE.PlaneGeometry(1, 1);
-  const material = new THREE.MeshStandardMaterial({
-    color: 0x6B0504,
-    side: THREE.DoubleSide,
-  });
-  const mesh = new THREE.Mesh(geometry, material);
-  mesh.receiveShadow = true;
-  return mesh;
-}
 
 
 function getLightSphere(color, size) {
