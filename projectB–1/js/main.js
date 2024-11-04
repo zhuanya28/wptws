@@ -3,10 +3,11 @@ let params = {
 };
 
 let terrainColor = "#0A3200";
- let  trunkColor=  "#8B4513";
- let treeColor = "#0A3200"
+let trunkColor = "#8B4513";
+let treeColor = "#0A3200"
+let treeColor2 = "#185018";
 
-let NUM_OF_POINTS = 50;
+let NUM_OF_POINTS = 30;
 let pointCloud;
 let particles = [];
 let particlePool = [];
@@ -17,12 +18,14 @@ const WORLD_SIZE = 200;
 const WORLD_HALF_SIZE = 100;
 let sunLight, moonLight;
 let sunLightTarget, moonLightTarget;
+let hue = (frame * 0.01) % 1;
 
 function setupThree() {
+  const renderer = new THREE.WebGLRenderer();
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.BasicShadowMap;
   scene.background = new THREE.Color(0x372772);
-  scene.fog = new THREE.Fog(0x372772, 5, WORLD_SIZE);
+  scene.fog = new THREE.Fog(0x372772, 2, WORLD_SIZE);
   setupLights();
   setupTerrain();
   createTrees();
@@ -33,8 +36,8 @@ function setupThree() {
 }
 
 function setupLights() {
-  sunLight = createSpotLight(0xE6AF2E, 2000);
-  moonLight = createSpotLight(0xB1C6FF, 1500);
+  sunLight = createSpotLight(0xE6AF2E, 1200);
+  moonLight = createSpotLight(0xB1C6FF, 400);
   sunLightTarget = createLightTarget(0xE6AF2E);
   moonLightTarget = createLightTarget(0x0E34A0);
   sunLight.target = sunLightTarget;
@@ -46,8 +49,8 @@ function createSpotLight(color, intensity) {
   const light = new THREE.SpotLight(color, intensity, WORLD_SIZE * 1.5, Math.PI / 2, 0, 0.7);
   light.position.set(WORLD_HALF_SIZE, 0, WORLD_HALF_SIZE);
   light.castShadow = true;
-  light.shadow.mapSize.width = 2048;
-  light.shadow.mapSize.height = 2048;
+  light.shadow.mapSize.width = WORLD_SIZE;
+  light.shadow.mapSize.height = WORLD_SIZE;
   return light;
 }
 
@@ -71,6 +74,7 @@ function setupGUI() {
 function updateThree() {
   updateLightPositions();
   updateParticles();
+  hue = (frame * 0.0005) % 1;
 }
 
 function updateParticles() {
@@ -78,8 +82,9 @@ function updateParticles() {
     for (let i = 0; i < 2; i++) { // Create fewer particles
       let x = cos(frame * 0.002) * WORLD_HALF_SIZE;
       let y = sin(frame * 0.001) * 10 + 30;
+      let z = cos(frame * 0.001) * WORLD_HALF_SIZE;
       let tParticle = getParticle()
-        .setPosition(x, y, 0)
+        .setPosition(x, y, z)
         .setVelocity(random(-0.1, 0.1), random(-0.1, 0.1), random(-0.1, 0.1));
       particles.push(tParticle);
     }
@@ -127,18 +132,18 @@ function updateLightPositions() {
 }
 
 function updateLightPosition(light, target, offset) {
-  light.position.y = Math.sin(frame * 0.005 + offset) * WORLD_HALF_SIZE;
+  light.position.y = Math.sin(frame * 0.0009 + offset) * WORLD_HALF_SIZE;
   if (light.position.y < 0) {
     target.position.y = -WORLD_SIZE;
   }
   target.position.x = light.position.x;
   target.position.z = light.position.z;
-  light.position.x = Math.cos(frame * 0.005 + offset) * (WORLD_SIZE + 50);
+  light.position.x = Math.cos(frame * 0.0009 + offset) * (WORLD_SIZE + 50);
   light.position.z = 0;
 }
 
 function createTerrain() {
-  const geometry = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE, 100, 100);
+  const geometry = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE, 250, 250);
   const material = new THREE.MeshStandardMaterial({
     color: terrainColor,
     wireframe: false,
@@ -184,14 +189,26 @@ function createPineTree() {
   );
 
   const leaves = new THREE.Group();
-  const levels = 4 + Math.floor(Math.random() * 3); 
+  const levels = 4 + Math.floor(Math.random() * 3);
   for (let i = 0; i < levels; i++) {
-    const cone = new THREE.Mesh(
-      new THREE.ConeGeometry(3 - i * 0.5, 4, 8),
-      new THREE.MeshStandardMaterial({ color: treeColor })
-    );
-    cone.position.y = i * 2 + 5;
+    if (Math.random()<0.5){
+      const cone = new THREE.Mesh(
+        new THREE.ConeGeometry(3 - i * 0.5, 4, 8),
+        new THREE.MeshStandardMaterial({ color: treeColor })
+      );
+      cone.position.y = i * 2 + 5;
     leaves.add(cone);
+    }
+    else {
+      const cone = new THREE.Mesh(
+        new THREE.ConeGeometry(3 - i * 0.5, 4, 8),
+        new THREE.MeshStandardMaterial({ color: treeColor2 })
+      );
+      cone.position.y = i * 2 + 5;
+    leaves.add(cone);
+    }
+    
+    
   }
 
   const tree = new THREE.Group();
@@ -200,6 +217,7 @@ function createPineTree() {
   trunk.receiveShadow = true;
   leaves.castShadow = true;
   leaves.receiveShadow = true;
+  tree.receiveShadow = true;
 
   return tree;
 }
@@ -214,7 +232,7 @@ function createTree() {
   }
 }
 
-function createNormalTree(){
+function createNormalTree() {
   const trunkRadius = 1 + Math.random() * 1.5;
   const trunkHeight = 8 + Math.random() * 4;
   const trunk = new THREE.Mesh(
@@ -224,10 +242,20 @@ function createNormalTree(){
 
   const leavesRadius = 3 + Math.random() * 2;
   const leavesHeight = 6 + Math.random() * 4;
-  const leaves = new THREE.Mesh(
-    new THREE.ConeGeometry(leavesRadius, leavesHeight, 8),
-    new THREE.MeshStandardMaterial({ color: treeColor })
-  );
+  let leaves;
+  if (Math.random()<0.5){
+     leaves = new THREE.Mesh(
+      new THREE.ConeGeometry(leavesRadius, leavesHeight, 8),
+      new THREE.MeshStandardMaterial({ color: treeColor })
+    );
+  }
+  else {
+    leaves = new THREE.Mesh(
+      new THREE.ConeGeometry(leavesRadius, leavesHeight, 8),
+      new THREE.MeshStandardMaterial({ color: treeColor2 })
+    );
+  }
+  
   leaves.position.y = trunkHeight / 2 + 2;
   const tree = new THREE.Group();
   tree.add(trunk, leaves);
@@ -259,6 +287,14 @@ function getPoints() {
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
   const colors = new Float32Array(NUM_OF_POINTS * 3);
+  const color = new THREE.Color();
+  color.setHSL(hue, 1, 0.5); 
+
+  for (let i = 0; i < NUM_OF_POINTS; i++) {
+    colors[i * 3] = color.r;
+    colors[i * 3 + 1] = color.g;
+    colors[i * 3 + 2] = color.b;
+  }
   geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
   const material = new THREE.PointsMaterial({
     vertexColors: true,
@@ -267,6 +303,8 @@ function getPoints() {
     depthTest: false,
     blending: THREE.AdditiveBlending
   });
+
+  // material.color.setHSL(hue, 1, 0.5);
   return new THREE.Points(geometry, material);
 }
 
@@ -289,7 +327,7 @@ function returnParticle(particle) {
 }
 
 class Particle {
-  constructor(emitsLight = false) {
+  constructor(emitsLight) {
     this.pos = createVector();
     this.vel = createVector();
     this.acc = createVector();
@@ -302,11 +340,12 @@ class Particle {
     this.g = 0.5;
     this.b = 0;
     this.emitsLight = emitsLight;
+
     if (this.emitsLight) {
-      this.light = new THREE.PointLight(0xffaa00, 5, 500);
-      this.light.intensity = 0.5;
+      this.light = new THREE.PointLight(0xff00aa, 1, 500);
+      this.light.color.setHSL(hue, 1, 0.5);
+      this.light.intensity = 1000;
       this.light.castShadow = true;
-      this.light.receiveShadow = true;
       scene.add(this.light);
     }
   }
@@ -317,23 +356,20 @@ class Particle {
     this.acc = createVector();
     this.lifespan = 1.0;
     this.isDone = false;
-    if (this.emitsLight) {
-      this.light.intensity = 0.5;
-    }
     return this;
   }
 
   updateLight() {
     if (this.emitsLight) {
-      this.light.position.set(this.pos.x, this.pos.y, this.pos.z);
-      this.light.intensity = this.lifespan * 2;
-      this.light.shadow.mapSize.width = 512;
-      this.light.shadow.mapSize.height = 512;
-      this.light.shadow.camera.near = 0.5;
-      this.light.shadow.camera.far = 500;
 
-      const hue = (frame * 0.01) % 1;
+      this.light.position.set(this.pos.x, this.pos.y, this.pos.z);
+      this.light.shadow.mapSize.width = WORLD_HALF_SIZE;
+      this.light.shadow.mapSize.height = WORLD_HALF_SIZE;
+      this.light.shadow.camera.near = 0.5;
+      this.light.shadow.camera.far = 100;
+
       this.light.color.setHSL(hue, 1, 0.5);
+      scene.add(this.light);
     }
   }
 
@@ -394,9 +430,9 @@ class Particle {
   }
 
   flow() {
-    let xFreq = this.pos.x * 0.05 + frame * 0.005;
-    let yFreq = this.pos.y * 0.05 + frame * 0.005;
-    let zFreq = this.pos.z * 0.05 + frame * 0.005;
+    let xFreq = this.pos.x * 0.005 + frame * 0.001;
+    let yFreq = this.pos.y * 0.005 + frame * 0.001;
+    let zFreq = this.pos.z * 0.005 + frame * 0.001;
     let noiseValue = map(noise(xFreq, yFreq, zFreq), 0.0, 1.0, -1.0, 1.0);
     let force = new p5.Vector(
       cos(frame * 0.005),
