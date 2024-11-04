@@ -1,11 +1,10 @@
 let params = {
-  terrainColor: "#0A3200",
-  treeColor: "#0A3200",
-  trunkColor: "#8B4513",
-  treeCount: 50,
-  treeMinSize: 20,
-  treeMaxSize: 150,
+  treeCount: 50
 };
+
+let terrainColor = "#0A3200";
+ let  trunkColor=  "#8B4513";
+ let treeColor = "#0A3200"
 
 let NUM_OF_POINTS = 50;
 let pointCloud;
@@ -66,16 +65,10 @@ function setupTerrain() {
 }
 
 function setupGUI() {
-  gui.addColor(params, "terrainColor");
-  gui.addColor(params, "treeColor");
-  gui.addColor(params, "trunkColor");
   gui.add(params, "treeCount", 1, 100).step(1).onChange(updateTrees);
-  gui.add(params, "treeMinSize", 5, 50).onChange(updateTrees);
-  gui.add(params, "treeMaxSize", 50, 120, 60).onChange(updateTrees);
 }
 
 function updateThree() {
-  updateColors();
   updateLightPositions();
   updateParticles();
 }
@@ -128,14 +121,6 @@ function updateParticles() {
   pointCloud.geometry.setDrawRange(0, particles.length);
 }
 
-function updateColors() {
-  terrain.material.color.set(params.terrainColor);
-  trees.forEach(tree => {
-    tree.children[0].material.color.set(params.trunkColor);
-    tree.children[1].material.color.set(params.treeColor);
-  });
-}
-
 function updateLightPositions() {
   updateLightPosition(sunLight, sunLightTarget, 0);
   updateLightPosition(moonLight, moonLightTarget, Math.PI);
@@ -155,7 +140,7 @@ function updateLightPosition(light, target, offset) {
 function createTerrain() {
   const geometry = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE, 100, 100);
   const material = new THREE.MeshStandardMaterial({
-    color: params.terrainColor,
+    color: terrainColor,
     wireframe: false,
     flatShading: true,
     side: THREE.DoubleSide
@@ -186,21 +171,64 @@ function createTrees() {
     raycaster.set(new THREE.Vector3(x, 100, z), new THREE.Vector3(0, -1, 0));
     const intersects = raycaster.intersectObject(terrain);
     tree.position.set(x, intersects.length > 0 ? intersects[0].point.y : 0, z);
+    tree.position.y += 4;
     scene.add(tree);
     trees.push(tree);
   }
 }
 
-function createTree() {
+function createPineTree() {
   const trunk = new THREE.Mesh(
-    new THREE.CylinderGeometry(2, 2, 10, 8),
-    new THREE.MeshStandardMaterial({ color: 0x4A7023 })
+    new THREE.CylinderGeometry(1, 1.5, 10, 8),
+    new THREE.MeshStandardMaterial({ color: trunkColor })
   );
+
+  const leaves = new THREE.Group();
+  const levels = 4 + Math.floor(Math.random() * 3); 
+  for (let i = 0; i < levels; i++) {
+    const cone = new THREE.Mesh(
+      new THREE.ConeGeometry(3 - i * 0.5, 4, 8),
+      new THREE.MeshStandardMaterial({ color: treeColor })
+    );
+    cone.position.y = i * 2 + 5;
+    leaves.add(cone);
+  }
+
+  const tree = new THREE.Group();
+  tree.add(trunk, leaves);
+  trunk.castShadow = true;
+  trunk.receiveShadow = true;
+  leaves.castShadow = true;
+  leaves.receiveShadow = true;
+
+  return tree;
+}
+
+function createTree() {
+  if (Math.random() < 0.5) {
+    return createPineTree();
+  }
+  else {
+
+    return createNormalTree();
+  }
+}
+
+function createNormalTree(){
+  const trunkRadius = 1 + Math.random() * 1.5;
+  const trunkHeight = 8 + Math.random() * 4;
+  const trunk = new THREE.Mesh(
+    new THREE.CylinderGeometry(trunkRadius, trunkRadius * 1.2, trunkHeight, 8),
+    new THREE.MeshStandardMaterial({ color: trunkColor })
+  );
+
+  const leavesRadius = 3 + Math.random() * 2;
+  const leavesHeight = 6 + Math.random() * 4;
   const leaves = new THREE.Mesh(
-    new THREE.ConeGeometry(4, 8, 8),
-    new THREE.MeshStandardMaterial({ color: 0x3CB371 })
+    new THREE.ConeGeometry(leavesRadius, leavesHeight, 8),
+    new THREE.MeshStandardMaterial({ color: treeColor })
   );
-  leaves.position.y = 5;
+  leaves.position.y = trunkHeight / 2 + 2;
   const tree = new THREE.Group();
   tree.add(trunk, leaves);
 
@@ -246,13 +274,13 @@ function getParticle() {
   if (particlePool.length > 0) {
     return particlePool.pop().reset();
   }
-  if (Math.random () < 0.5){
+  if (Math.random() < 0.5) {
     return new Particle(true);
-  }else {
+  } else {
     return new Particle(false);
   }
 
-  
+
 }
 
 function returnParticle(particle) {
