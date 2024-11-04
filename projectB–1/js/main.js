@@ -4,7 +4,7 @@ let params = {
   trunkColor: "#8B4513",
   treeCount: 50,
   treeMinSize: 20,
-  treeMaxSize: 50,
+  treeMaxSize: 150,
 };
 
 let NUM_OF_POINTS = 50;
@@ -71,7 +71,7 @@ function setupGUI() {
   gui.addColor(params, "trunkColor");
   gui.add(params, "treeCount", 1, 100).step(1).onChange(updateTrees);
   gui.add(params, "treeMinSize", 5, 50).onChange(updateTrees);
-  gui.add(params, "treeMaxSize", 10, 100).onChange(updateTrees);
+  gui.add(params, "treeMaxSize", 50, 120, 60).onChange(updateTrees);
 }
 
 function updateThree() {
@@ -98,6 +98,7 @@ function updateParticles() {
   for (let i = 0; i < particles.length; i++) {
     let p = particles[i];
     p.move();
+    p.flow();
     p.age();
     let ptIndex = i * 3;
     posArray[ptIndex] = p.pos.x;
@@ -152,7 +153,7 @@ function updateLightPosition(light, target, offset) {
 }
 
 function createTerrain() {
-  const geometry = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE, 200, 200);
+  const geometry = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE, 100, 100);
   const material = new THREE.MeshStandardMaterial({
     color: params.terrainColor,
     wireframe: false,
@@ -343,7 +344,7 @@ class Particle {
     this.pos.add(this.vel);
     this.acc.mult(0);
     if (this.pos.y < 50) {
-      this.pos.y = 0;
+      this.pos.y = 60;
       this.vel.y *= -0.5;
     }
   }
