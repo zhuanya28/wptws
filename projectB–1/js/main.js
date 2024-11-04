@@ -22,7 +22,7 @@ function setupThree() {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.BasicShadowMap;
   scene.background = new THREE.Color(0x372772);
-  scene.fog = new THREE.Fog(0x372772, 10, WORLD_SIZE);
+  scene.fog = new THREE.Fog(0x372772, 5, WORLD_SIZE);
   setupLights();
   setupTerrain();
   createTrees();
