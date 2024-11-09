@@ -14,8 +14,12 @@ header {
 }
 
 h1 {
-    font-size: 36px;
+    font-size: 48px; /* Larger size for prominence */
+    font-weight: 700; /* Bold to make it stand out */
     color: #2A4D69; /* Oxford Blue */
+    text-transform: lowercase; /* Make the heading lowercase */
+    text-align: center; /* Center the heading */
+    margin-bottom: 20px; /* Add space below the heading */
 }
 
 /* Navigation Styling */
@@ -25,21 +29,30 @@ nav ul {
 }
 
 nav ul li {
-    margin-bottom: 30px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 0px;
+    height: 60px; /* Set a fixed height for uniformity */
 }
 
 nav ul li a {
     text-decoration: none;
-    color: #fff;
-    background-color: #2A4D69; /* Oxford Blue */
-    padding: 12px 24px;
-    border-radius: 8px;
+    color: #2A4D69; /* Same as background for hidden link text */
+    background-color: #F5F5F5; /* Match background initially */
+    padding: 0 24px;
     font-size: 18px;
-    transition: background-color 0.3s ease, transform 0.3s ease;
+    transition: background-color 0.5s ease, transform 0.5s ease;
+    height: 100%; /* Full height for uniformity */
+    width: 400px; /* Set a fixed width for uniformity */
+    
+    display: flex; /* Flexbox to center text inside link container */
+    justify-content: left;
+    align-items: center;
 }
 
 nav ul li a:hover {
-    background-color: #4CAF50; /* Emerald Green */
+    background-color: #2A4D69; /* Change to blue on hover (Oxford Blue) */
     color: #fff; /* White text on hover */
 }
 
@@ -55,12 +68,12 @@ footer p {
 
 /* Responsive Design */
 @media (max-width: 600px) {
-    nav ul li a {
-        font-size: 16px;
-        padding: 10px 20px; /* Adjust padding for smaller screens */
-        width: auto; /* Ensure links don't overflow */
-        text-align: center; /* Center align text on smaller screens */
-        display: block; /* Make sure each link takes up full width */
-        margin-bottom: 15px; /* Increase spacing between links */
-    }
+   nav ul li a {
+       font-size: 16px;
+       padding: 10px 20px; /* Adjust padding for smaller screens */
+       width: auto; /* Ensure links don't overflow on mobile screens */
+       text-align: center; 
+       display: block; 
+       margin-bottom: 15px;
+   }
 }
