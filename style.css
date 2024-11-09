@@ -1,23 +1,66 @@
+/* General Styling */
 body {
     font-family: 'Inter', sans-serif;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    background-color: #f0f0f0;
+    background-color: #F5F5F5; /* Light Gray */
     margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
-a {
+
+/* Header Styling */
+header {
+    margin-top: 20px;
+}
+
+h1 {
+    font-size: 36px;
+    color: #2A4D69; /* Oxford Blue */
+}
+
+/* Navigation Styling */
+nav ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+nav ul li {
+    margin-bottom: 30px;
+}
+
+nav ul li a {
     text-decoration: none;
     color: #fff;
-    background-color: #32533D;
-    padding: 10px 20px;
-    border-radius: 5px;
-    margin: 10px;
+    background-color: #2A4D69; /* Oxford Blue */
+    padding: 12px 24px;
+    border-radius: 8px;
     font-size: 18px;
-    transition: background-color 0.3s ease;
+    transition: background-color 0.3s ease, transform 0.3s ease;
 }
-a:hover {
-    background-color: #DAD6D6;
-    color: #32533D;
+
+nav ul li a:hover {
+    background-color: #4CAF50; /* Emerald Green */
+    color: #fff; /* White text on hover */
+}
+
+/* Footer Styling */
+footer {
+    margin-top: auto; /* Pushes footer to the bottom */
+    padding: 20px;
+}
+
+footer p {
+    color: #888888; /* Neutral Gray Text */
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+    nav ul li a {
+        font-size: 16px;
+        padding: 10px 20px; /* Adjust padding for smaller screens */
+        width: auto; /* Ensure links don't overflow */
+        text-align: center; /* Center align text on smaller screens */
+        display: block; /* Make sure each link takes up full width */
+        margin-bottom: 15px; /* Increase spacing between links */
+    }
 }
