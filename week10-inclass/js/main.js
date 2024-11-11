@@ -5,22 +5,29 @@ let params = {
 const WORLD_HALF = 1000;
 let plane;
 let controlsDrag;
-let object;
 
 function setupThree() {
   // controls
-  controls = new MapControls(camera, renderer.domElement);
+  clock = new THREE.Clock();
+  // controls = new FlyControls(camera, renderer.domElement);
+  // controls.movementSpeed = 100;
+  // controls.rollSpeed = 0.5;
+  // controls.autoForward = true;
 
+  // controls = new MapControls(camera, renderer.domElement);
+
+
+  const controls = new PointerLockControls( camera, document.body );
 
   controlsDrag = new DragControls(scene.children, camera, renderer.domElement);
 
   controlsDrag.addEventListener('dragstart', function (event) {
-    event.object.material.color.setRGB(1, 0,0);
+    event.object.material.color.setRGB(1, 0, 0);
     controls.enabled = false;
   });
   controlsDrag.addEventListener('dragend', function (event) {
     controls.enabled = true;
-    event.object.material.color.setRGB(0,1,0);
+    event.object.material.color.setRGB(0, 1, 0);
   });
 
   //direction
@@ -34,13 +41,13 @@ function setupThree() {
   controls.panSpeed = 1.0;
   controls.zoomSpeed = 0.15;
 
-  controls.listenToKeyEvents(window);
-  controls.keys = {
-    LEFT: "KeyA",
-    UP: "KeyW",
-    RIGHT: "KeyD",
-    BOTTOM: "KeyS"
-  };
+  // controls.listenToKeyEvents(window);
+  // controls.keys = {
+  //   LEFT: "KeyA",
+  //   UP: "KeyW",
+  //   RIGHT: "KeyD",
+  //   BOTTOM: "KeyS"
+  // };
 
   // plane
   plane = getPlane();
@@ -68,12 +75,19 @@ function setupThree() {
 
     box.material.transparent = true;
     box.material.opacity = random(0.4, 0.7);
+
+
   }
 }
 
 function updateThree() {
-  console.log(camera.position.z);
-  controls.update();
+
+  // console.log(camera.position.z);
+  // let delta = clock.getDelta();
+  // controls.update(delta);
+
+  // //to make it less disorienting 
+  // camera.position.y = 100;
 }
 
 function getBox() {
