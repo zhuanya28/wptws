@@ -7,7 +7,25 @@ let plane;
 
 function setupThree() {
   // controls
-  controls = new OrbitControls(camera, renderer.domElement);
+  controls = new MapControls(camera, renderer.domElement);
+  //direction
+  controls.minDistance = 500;
+  controls.maxDistance = 1500;
+  controls.minPolarAngle = 0;
+  controls.maxPolarAngle = Math.PI/2;
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.05;
+  controls.rotateSpeed = 0.5;
+  controls.panSpeed = 5.5;
+  controls.zoomSpeed = 0.15;
+
+  controls.listenToKeyEvents(window);
+  controls.keys = {
+    LEFT: "KeyA",
+    UP: "KeyW",
+    RIGHT: "KeyD",
+    BOTTOM: "KeyS"
+  };
 
   // plane
   plane = getPlane();
@@ -39,7 +57,8 @@ function setupThree() {
 }
 
 function updateThree() {
-  //
+  console.log(camera.position.z);
+  controls.update();
 }
 
 function getBox() {
