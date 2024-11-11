@@ -4,19 +4,34 @@ let params = {
 
 const WORLD_HALF = 1000;
 let plane;
+let controlsDrag;
+let object;
 
 function setupThree() {
   // controls
   controls = new MapControls(camera, renderer.domElement);
+
+
+  controlsDrag = new DragControls(scene.children, camera, renderer.domElement);
+
+  controlsDrag.addEventListener('dragstart', function (event) {
+    event.object.material.color.setRGB(1, 0,0);
+    controls.enabled = false;
+  });
+  controlsDrag.addEventListener('dragend', function (event) {
+    controls.enabled = true;
+    event.object.material.color.setRGB(0,1,0);
+  });
+
   //direction
   controls.minDistance = 500;
   controls.maxDistance = 1500;
   controls.minPolarAngle = 0;
-  controls.maxPolarAngle = Math.PI/2;
+  controls.maxPolarAngle = Math.PI / 2;
   controls.enableDamping = true;
   controls.dampingFactor = 0.05;
   controls.rotateSpeed = 0.5;
-  controls.panSpeed = 5.5;
+  controls.panSpeed = 1.0;
   controls.zoomSpeed = 0.15;
 
   controls.listenToKeyEvents(window);
