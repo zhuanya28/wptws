@@ -12,13 +12,12 @@ let NUM_OF_POINTS = 30;
 let pointCloud;
 let particles = [];
 let particlePool = [];
-const raycaster = new THREE.Raycaster();
 
 let terrainVertices = [];
 let terrain;
 let trees = [];
-const WORLD_SIZE = 300;
-const WORLD_HALF_SIZE = 150;
+const WORLD_SIZE = 1000;
+const WORLD_HALF_SIZE = 500;
 let sunLight, moonLight;
 let sunLightTarget, moonLightTarget;
 let hue = (frame * 0.01) % 1;
@@ -164,9 +163,9 @@ function createTerrain() {
       let y = vertices[i + 1];
       let z = vertices[i + 2];
    
-      let xOffset = (x + WORLD_HALF_SIZE) * 0.005;
-      let yOffset = (y + WORLD_HALF_SIZE) * 0.005;
-      let amp = 5;
+      let xOffset = (x + WORLD_HALF_SIZE) * 0.01;
+      let yOffset = (y + WORLD_HALF_SIZE) * 0.01;
+      let amp = 6;
       let noiseValue = (noise(xOffset, yOffset) * amp) ** 3;
    
       vertices[i + 2] = noiseValue;
@@ -174,8 +173,8 @@ function createTerrain() {
       terrainVertices.push({x: x, y: noiseValue, z: y});
     }
     terrain.geometry.attributes.position.needsUpdate = true;
+    terrain.rotation.x = Math.PI / 2;
 
-    terrain.rotation.x = -Math.PI / 2;
     return terrain;
 }
 
@@ -191,11 +190,11 @@ function createTrees() {
     const z = randomVertex.z;
     
 
-    const y = randomVertex.y;
+    const y = -randomVertex.y;
 
     tree.position.set(x, y, z);
     
-    tree.position.y += 0.5;
+    tree.position.y += 3;
     
     scene.add(tree);
     trees.push(tree);
