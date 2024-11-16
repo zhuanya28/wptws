@@ -7,6 +7,10 @@ let trunkColor = "#8B4513";
 let treeColor = "#0A3200"
 let treeColor2 = "#185018";
 
+let cloudParticles = [];
+
+let flyControls;
+
 
 let NUM_OF_POINTS = 30;
 let pointCloud;
@@ -22,6 +26,14 @@ let sunLight, moonLight;
 let sunLightTarget, moonLightTarget;
 let hue = (frame * 0.01) % 1;
 
+const cloudParams = {
+  layerCount: 3,       
+  cloudCountPerLayer: 5, 
+  layerHeight: WORLD_SIZE/10,    
+  minRadius: 3, 
+  maxRadius: 10, 
+};
+
 function setupThree() {
   const renderer = new THREE.WebGLRenderer();
   renderer.shadowMap.enabled = true;
@@ -32,10 +44,24 @@ function setupThree() {
   setupTerrain();
   createTrees();
 
+
+
+  clock = new THREE.Clock();
+  controls = new FlyControls(camera, renderer.domElement);
+  controls.movementSpeed = 100;
+  controls.rollSpeed = 0.5;
+  controls.autoForward = true;
+
+
   setupGUI();
   pointCloud = getPoints();
   scene.add(pointCloud);
+
+  const clouds = createCloudLayers();
+  scene.add(clouds);
 }
+
+
 
 function setupLights() {
   sunLight = createSpotLight(0xE6AF2E, 1200);
@@ -76,18 +102,32 @@ function setupGUI() {
 function updateThree() {
   updateLightPositions();
   updateParticles();
+
+  const delta = clock.getDelta();
+  controls.update(delta);
+
+  // Prevent going below terrain
+
+
+
+  cloudParticles.forEach(cloud => {
+    cloud.lookAt(camera.position); // Rotate each cloud to face the camera
+  });
+
+
   hue = (frame * 0.0005) % 1;
 }
 
 function updateParticles() {
   if (frame % 5 === 0) { 
     for (let i = 0; i < 2; i++) { 
-      let x = cos(frame * 0.002) * WORLD_HALF_SIZE;
-      let y = sin(frame * 0.001) * 10 + 30;
-      let z = cos(frame * 0.001) * WORLD_HALF_SIZE;
+      let x = Math.sin(frame * 0.001) * WORLD_HALF_SIZE;
+      let z = Math.cos(frame * 0.001) * WORLD_HALF_SIZE;
+
+      let y = getTerrainHeightAt(x,z)*0.3;
       let tParticle = getParticle()
         .setPosition(x, y, z)
-        .setVelocity(random(-0.1, 0.1), random(-0.1, 0.1), random(-0.1, 0.1));
+        .setVelocity(random(-0.1, 0.1), random(-0.5, 0.5), random(-0.1, 0.1));
       particles.push(tParticle);
     }
   }
@@ -108,7 +148,7 @@ function updateParticles() {
     colorArray[ptIndex + 1] = p.g * p.lifespan;
     colorArray[ptIndex + 2] = p.b * p.lifespan;
 
-    if (frame % 3 === 0) { // Update light every 3 frames
+    if (frame % 3 === 0) { 
       p.updateLight();
     }
 
@@ -163,9 +203,9 @@ function createTerrain() {
       let y = vertices[i + 1];
       let z = vertices[i + 2];
    
-      let xOffset = (x + WORLD_HALF_SIZE) * 0.01;
-      let yOffset = (y + WORLD_HALF_SIZE) * 0.01;
-      let amp = 6;
+      let xOffset = (x + WORLD_HALF_SIZE) * 0.005;
+      let yOffset = (y + WORLD_HALF_SIZE) * 0.005;
+      let amp = 10;
       let noiseValue = (noise(xOffset, yOffset) * amp) ** 3;
    
       vertices[i + 2] = noiseValue;
@@ -184,6 +224,7 @@ function createTrees() {
   for (let i = 0; i < params.treeCount; i++) {
     const tree = createTree();
     
+    
     const randomVertex = terrainVertices[Math.floor(Math.random() * terrainVertices.length)];
     
     const x = randomVertex.x;
@@ -195,6 +236,9 @@ function createTrees() {
     tree.position.set(x, y, z);
     
     tree.position.y += 3;
+
+    const scaleFactor = Math.random() * 7 + 0.5; 
+    tree.scale.set(scaleFactor, scaleFactor, scaleFactor);
     
     scene.add(tree);
     trees.push(tree);
@@ -323,7 +367,6 @@ function getPoints() {
     blending: THREE.AdditiveBlending
   });
 
-  // material.color.setHSL(hue, 1, 0.5);
   return new THREE.Points(geometry, material);
 }
 
@@ -337,7 +380,6 @@ function getParticle() {
     return new Particle(false);
   }
 
-
 }
 
 function returnParticle(particle) {
@@ -345,6 +387,48 @@ function returnParticle(particle) {
   particlePool.push(particle);
 }
 
+function createCloudLayers() {
+  const cloudTexture = new THREE.TextureLoader().load('assets/cloud.png'); // Load your cloud texture
+  const cloudMaterial = new THREE.MeshLambertMaterial({
+    map: cloudTexture,
+    transparent: true,
+    opacity: 0.2, 
+    depthWrite: false,
+  });
+
+  const cloudGroup = new THREE.Group(); 
+
+  for (let i = 0; i < cloudParams.layerCount; i++) {
+    const layer = new THREE.Group(); 
+
+    for (let j = 0; j < cloudParams.cloudCountPerLayer; j++) {
+      const cloudGeometry = new THREE.PlaneGeometry(400, 100);
+      const cloud = new THREE.Mesh(cloudGeometry, cloudMaterial);
+
+      const randomVertex = terrainVertices[Math.floor(Math.random() * terrainVertices.length)];
+      
+
+      const x = randomVertex.x + (Math.random() - 0.5) * WORLD_SIZE * 0.2; // Random offset in X
+      const z = randomVertex.z + (Math.random() - 0.5) * WORLD_SIZE * 0.2; // Random offset in Z
+      const y = randomVertex.y-300; 
+
+      cloud.position.set(x, y, z);
+
+      cloud.rotation.z = Math.random() * Math.PI * 2;
+
+      const scale = 2 + Math.random() * 1;
+      cloud.scale.set(scale, scale, scale);
+
+      layer.add(cloud);
+      cloudParticles.push(cloud);
+    }
+
+    layer.position.y = i * (cloudParams.layerHeight + Math.random() * 20);
+    cloudGroup.add(layer); 
+  }
+
+  return cloudGroup;
+}
 class Particle {
   constructor(emitsLight) {
     this.pos = createVector();
@@ -361,9 +445,9 @@ class Particle {
     this.emitsLight = emitsLight;
 
     if (this.emitsLight) {
-      this.light = new THREE.PointLight(0xff00aa, 1, 500);
+      this.light = new THREE.PointLight(0xff00aa, 10, 500);
       this.light.color.setHSL(hue, 1, 0.5);
-      this.light.intensity = 1000;
+      this.light.intensity = 2000;
       this.light.castShadow = true;
       scene.add(this.light);
     }
@@ -426,10 +510,10 @@ class Particle {
     this.vel.add(this.acc);
     this.pos.add(this.vel);
     this.acc.mult(0);
-    if (this.pos.y < 50) {
-      this.pos.y = 60;
-      this.vel.y *= -0.5;
-    }
+    // if (this.pos.y < 50) {
+    //   this.pos.y = 60;
+    //   this.vel.y *= -0.5;
+    // }
   }
 
   age() {
@@ -462,4 +546,35 @@ class Particle {
     force.mult(noiseValue * 0.01);
     this.applyForce(force);
   }
+}
+
+
+function getTerrainHeightAt(x, z) {
+  const gridSize = Math.sqrt(terrainVertices.length); // Assuming square grid
+  const halfWorldSize = WORLD_SIZE / 2;
+
+  // Normalize world coordinates (x, z) into grid indices
+  const normalizedX = (x + halfWorldSize) / WORLD_SIZE;
+  const normalizedZ = (z + halfWorldSize) / WORLD_SIZE;
+
+  const gridX = Math.floor(normalizedX * (gridSize - 1));
+  const gridZ = Math.floor(normalizedZ * (gridSize - 1));
+
+  // Get indices of surrounding vertices in terrainVertices array
+  const vertexIndex = (gridZ * gridSize + gridX);
+
+  // Get heights of surrounding vertices
+  const v1 = terrainVertices[vertexIndex];           // Top-left
+  const v2 = terrainVertices[vertexIndex + 1];       // Top-right
+  const v3 = terrainVertices[vertexIndex + gridSize]; // Bottom-left
+  const v4 = terrainVertices[vertexIndex + gridSize + 1]; // Bottom-right
+
+  // Interpolate between these four vertices based on exact position
+  const localX = normalizedX * (gridSize - 1) - gridX;
+  const localZ = normalizedZ * (gridSize - 1) - gridZ;
+
+  const topHeight = v1.y * (1 - localX) + v2.y * localX;
+  const bottomHeight = v3.y * (1 - localX) + v4.y * localX;
+
+  return topHeight * (1 - localZ) + bottomHeight * localZ;
 }
