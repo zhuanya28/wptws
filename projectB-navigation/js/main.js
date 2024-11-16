@@ -7,11 +7,14 @@ let trunkColor = "#8B4513";
 let treeColor = "#0A3200"
 let treeColor2 = "#185018";
 
+
 let NUM_OF_POINTS = 30;
 let pointCloud;
 let particles = [];
 let particlePool = [];
 const raycaster = new THREE.Raycaster();
+
+let terrainVertices = [];
 let terrain;
 let trees = [];
 const WORLD_SIZE = 300;
@@ -78,8 +81,8 @@ function updateThree() {
 }
 
 function updateParticles() {
-  if (frame % 5 === 0) { // Create particles every 5 frames
-    for (let i = 0; i < 2; i++) { // Create fewer particles
+  if (frame % 5 === 0) { 
+    for (let i = 0; i < 2; i++) { 
       let x = cos(frame * 0.002) * WORLD_HALF_SIZE;
       let y = sin(frame * 0.001) * 10 + 30;
       let z = cos(frame * 0.001) * WORLD_HALF_SIZE;
@@ -143,27 +146,37 @@ function updateLightPosition(light, target, offset) {
 }
 
 function createTerrain() {
-  const geometry = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE, 250, 250);
-  const material = new THREE.MeshStandardMaterial({
-    color: terrainColor,
-    wireframe: false,
-    flatShading: true,
-    side: THREE.DoubleSide
-  });
-  const terrain = new THREE.Mesh(geometry, material);
+    const geometry = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE, 250, 250);
+    const material = new THREE.MeshStandardMaterial({
+      color: terrainColor,
+      wireframe: false,
+      flatShading: true,
+      side: THREE.DoubleSide
+    });
+    const terrain = new THREE.Mesh(geometry, material);
+  
+    terrain.castShadow = true;
+    terrain.receiveShadow = true;
+    let vertices = terrain.geometry.attributes.position.array;
+    terrainVertices = []; 
+    for (let i = 0; i < vertices.length; i += 3) {
+      let x = vertices[i + 0];
+      let y = vertices[i + 1];
+      let z = vertices[i + 2];
+   
+      let xOffset = (x + WORLD_HALF_SIZE) * 0.005;
+      let yOffset = (y + WORLD_HALF_SIZE) * 0.005;
+      let amp = 5;
+      let noiseValue = (noise(xOffset, yOffset) * amp) ** 3;
+   
+      vertices[i + 2] = noiseValue;
+      
+      terrainVertices.push({x: x, y: noiseValue, z: y});
+    }
+    terrain.geometry.attributes.position.needsUpdate = true;
 
-  terrain.castShadow = true;
-  terrain.receiveShadow = true;
-  const vertices = terrain.geometry.attributes.position.array;
-  for (let i = 0; i < vertices.length; i += 3) {
-    const x = vertices[i] / 50;
-    const y = vertices[i + 1] / 50 - 300;
-    vertices[i + 2] = noise(x, y) * 100;
-  }
-  terrain.geometry.attributes.position.needsUpdate = true;
-  terrain.geometry.computeVertexNormals();
-  terrain.rotation.x = -Math.PI / 2;
-  return terrain;
+    terrain.rotation.x = -Math.PI / 2;
+    return terrain;
 }
 
 function createTrees() {
@@ -171,12 +184,19 @@ function createTrees() {
   trees = [];
   for (let i = 0; i < params.treeCount; i++) {
     const tree = createTree();
-    const x = Math.random() * WORLD_SIZE - WORLD_HALF_SIZE;
-    const z = Math.random() * WORLD_SIZE - WORLD_HALF_SIZE;
-    raycaster.set(new THREE.Vector3(x, 100, z), new THREE.Vector3(0, -1, 0));
-    const intersects = raycaster.intersectObject(terrain);
-    tree.position.set(x, intersects.length > 0 ? intersects[0].point.y : 0, z);
-    tree.position.y += 4;
+    
+    const randomVertex = terrainVertices[Math.floor(Math.random() * terrainVertices.length)];
+    
+    const x = randomVertex.x;
+    const z = randomVertex.z;
+    
+
+    const y = randomVertex.y;
+
+    tree.position.set(x, y, z);
+    
+    tree.position.y += 0.5;
+    
     scene.add(tree);
     trees.push(tree);
   }
@@ -191,13 +211,13 @@ function createPineTree() {
   const leaves = new THREE.Group();
   const levels = 4 + Math.floor(Math.random() * 3);
   for (let i = 0; i < levels; i++) {
-    if (Math.random()<0.5){
+    if (Math.random() < 0.5) {
       const cone = new THREE.Mesh(
         new THREE.ConeGeometry(3 - i * 0.5, 4, 8),
         new THREE.MeshStandardMaterial({ color: treeColor })
       );
       cone.position.y = i * 2 + 5;
-    leaves.add(cone);
+      leaves.add(cone);
     }
     else {
       const cone = new THREE.Mesh(
@@ -205,10 +225,10 @@ function createPineTree() {
         new THREE.MeshStandardMaterial({ color: treeColor2 })
       );
       cone.position.y = i * 2 + 5;
-    leaves.add(cone);
+      leaves.add(cone);
     }
-    
-    
+
+
   }
 
   const tree = new THREE.Group();
@@ -243,8 +263,8 @@ function createNormalTree() {
   const leavesRadius = 3 + Math.random() * 2;
   const leavesHeight = 6 + Math.random() * 4;
   let leaves;
-  if (Math.random()<0.5){
-     leaves = new THREE.Mesh(
+  if (Math.random() < 0.5) {
+    leaves = new THREE.Mesh(
       new THREE.ConeGeometry(leavesRadius, leavesHeight, 8),
       new THREE.MeshStandardMaterial({ color: treeColor })
     );
@@ -255,7 +275,7 @@ function createNormalTree() {
       new THREE.MeshStandardMaterial({ color: treeColor2 })
     );
   }
-  
+
   leaves.position.y = trunkHeight / 2 + 2;
   const tree = new THREE.Group();
   tree.add(trunk, leaves);
@@ -288,7 +308,7 @@ function getPoints() {
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
   const colors = new Float32Array(NUM_OF_POINTS * 3);
   const color = new THREE.Color();
-  color.setHSL(hue, 1, 0.5); 
+  color.setHSL(hue, 1, 0.5);
 
   for (let i = 0; i < NUM_OF_POINTS; i++) {
     colors[i * 3] = color.r;
