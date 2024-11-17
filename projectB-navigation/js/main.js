@@ -1,6 +1,4 @@
-let params = {
-  treeCount: 50
-};
+
 
 let terrainColor = "#0A3200";
 let trunkColor = "#8B4513";
@@ -20,18 +18,32 @@ let particlePool = [];
 let terrainVertices = [];
 let terrain;
 let trees = [];
-const WORLD_SIZE = 1000;
-const WORLD_HALF_SIZE = 500;
+const WORLD_SIZE = 3000;
+const WORLD_HALF_SIZE = 1500;
 let sunLight, moonLight;
 let sunLightTarget, moonLightTarget;
 let hue = (frame * 0.01) % 1;
 
+// for controls movements
+let moveForward = false;
+let moveBackward = false;
+let moveLeft = false;
+let moveRight = false;
+let canJump = true;
+let velocity = new THREE.Vector3();
+let direction = new THREE.Vector3();
+let prevTime = performance.now();
+
+let params = {
+  treeCount: WORLD_SIZE / 10
+};
+
 const cloudParams = {
-  layerCount: 3,       
-  cloudCountPerLayer: 5, 
-  layerHeight: WORLD_SIZE/10,    
-  minRadius: 3, 
-  maxRadius: 10, 
+  layerCount: 10,
+  cloudCountPerLayer: 10,
+  layerHeight: WORLD_SIZE / 1000 + 100,
+  minRadius: WORLD_HALF_SIZE / 100,
+  maxRadius: WORLD_HALF_SIZE / 50,
 };
 
 function setupThree() {
@@ -40,25 +52,47 @@ function setupThree() {
   renderer.shadowMap.type = THREE.BasicShadowMap;
   scene.background = new THREE.Color(0x372772);
   scene.fog = new THREE.Fog(0x372772, 2, WORLD_SIZE);
+
   setupLights();
-  setupTerrain();
+  terrain = createTerrain();
+  scene.add(terrain);
   createTrees();
 
+  const everything = new THREE.Group();
+  everything.add();
 
+  controls = new PointerLockControls(camera, renderer.domElement);
+  scene.add(controls.getObject());
 
-  clock = new THREE.Clock();
-  controls = new FlyControls(camera, renderer.domElement);
-  controls.movementSpeed = 100;
-  controls.rollSpeed = 0.5;
-  controls.autoForward = true;
+  document.body.addEventListener('click', function () {
+      controls.lock();
+  });
 
+  controls.addEventListener('lock', function () {
+      // Handle locked state
+  });
 
-  setupGUI();
+  controls.addEventListener('unlock', function () {
+      // Handle unlocked state
+  });
+
   pointCloud = getPoints();
   scene.add(pointCloud);
 
   const clouds = createCloudLayers();
   scene.add(clouds);
+}
+
+function updateThree() {
+  updateLightPositions();
+  updateParticles();
+  updateControls();
+
+  cloudParticles.forEach(cloud => {
+      cloud.lookAt(camera.position);
+  });
+
+  hue = (frame * 0.0005) % 1;
 }
 
 
@@ -90,41 +124,19 @@ function createLightTarget(color) {
   return target;
 }
 
-function setupTerrain() {
-  terrain = createTerrain();
-  scene.add(terrain);
-}
-
 function setupGUI() {
-  gui.add(params, "treeCount", 1, 100).step(1).onChange(updateTrees);
+
 }
 
-function updateThree() {
-  updateLightPositions();
-  updateParticles();
 
-  const delta = clock.getDelta();
-  controls.update(delta);
-
-  // Prevent going below terrain
-
-
-
-  cloudParticles.forEach(cloud => {
-    cloud.lookAt(camera.position); // Rotate each cloud to face the camera
-  });
-
-
-  hue = (frame * 0.0005) % 1;
-}
 
 function updateParticles() {
-  if (frame % 5 === 0) { 
-    for (let i = 0; i < 2; i++) { 
+  if (frame % 5 === 0) {
+    for (let i = 0; i < 2; i++) {
       let x = Math.sin(frame * 0.001) * WORLD_HALF_SIZE;
       let z = Math.cos(frame * 0.001) * WORLD_HALF_SIZE;
 
-      let y = getTerrainHeightAt(x,z)*0.3;
+      let y = getTerrainHeightAt(x, z) * 0.3;
       let tParticle = getParticle()
         .setPosition(x, y, z)
         .setVelocity(random(-0.1, 0.1), random(-0.5, 0.5), random(-0.1, 0.1));
@@ -148,7 +160,7 @@ function updateParticles() {
     colorArray[ptIndex + 1] = p.g * p.lifespan;
     colorArray[ptIndex + 2] = p.b * p.lifespan;
 
-    if (frame % 3 === 0) { 
+    if (frame % 3 === 0) {
       p.updateLight();
     }
 
@@ -185,37 +197,42 @@ function updateLightPosition(light, target, offset) {
 }
 
 function createTerrain() {
-    const geometry = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE, 250, 250);
-    const material = new THREE.MeshStandardMaterial({
-      color: terrainColor,
-      wireframe: false,
-      flatShading: true,
-      side: THREE.DoubleSide
-    });
-    const terrain = new THREE.Mesh(geometry, material);
-  
-    terrain.castShadow = true;
-    terrain.receiveShadow = true;
-    let vertices = terrain.geometry.attributes.position.array;
-    terrainVertices = []; 
-    for (let i = 0; i < vertices.length; i += 3) {
-      let x = vertices[i + 0];
-      let y = vertices[i + 1];
-      let z = vertices[i + 2];
-   
-      let xOffset = (x + WORLD_HALF_SIZE) * 0.005;
-      let yOffset = (y + WORLD_HALF_SIZE) * 0.005;
-      let amp = 10;
-      let noiseValue = (noise(xOffset, yOffset) * amp) ** 3;
-   
-      vertices[i + 2] = noiseValue;
-      
-      terrainVertices.push({x: x, y: noiseValue, z: y});
-    }
-    terrain.geometry.attributes.position.needsUpdate = true;
-    terrain.rotation.x = Math.PI / 2;
+  const geometry = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE, 200, 200);
 
-    return terrain;
+  const textureLoader = new THREE.TextureLoader();
+  const texture = textureLoader.load('assets/ground-texture-8.png');
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(40, 40);
+  const material = new THREE.MeshStandardMaterial({
+    map: texture,
+    wireframe: false,
+    side: THREE.DoubleSide
+  });
+  const terrain = new THREE.Mesh(geometry, material);
+
+  terrain.castShadow = true;
+  terrain.receiveShadow = true;
+  let vertices = terrain.geometry.attributes.position.array;
+  terrainVertices = [];
+  for (let i = 0; i < vertices.length; i += 3) {
+    let x = vertices[i + 0];
+    let y = vertices[i + 1];
+    let z = vertices[i + 2];
+
+    let xOffset = (x + WORLD_HALF_SIZE) * 0.005;
+    let yOffset = (y + WORLD_HALF_SIZE) * 0.005;
+    let amp = 10;
+    let noiseValue = (noise(xOffset, yOffset) * amp) ** 3;
+
+    vertices[i + 2] = noiseValue;
+
+    terrainVertices.push({ x: x, y: noiseValue, z: y });
+  }
+  terrain.geometry.attributes.position.needsUpdate = true;
+  terrain.rotation.x = Math.PI / 2;
+
+  return terrain;
 }
 
 function createTrees() {
@@ -223,23 +240,26 @@ function createTrees() {
   trees = [];
   for (let i = 0; i < params.treeCount; i++) {
     const tree = createTree();
-    
-    
+
+
     const randomVertex = terrainVertices[Math.floor(Math.random() * terrainVertices.length)];
-    
+
     const x = randomVertex.x;
     const z = randomVertex.z;
-    
+
 
     const y = -randomVertex.y;
 
     tree.position.set(x, y, z);
-    
+
     tree.position.y += 3;
 
-    const scaleFactor = Math.random() * 7 + 0.5; 
+    const scaleFactor = Math.random() * 20 + 0.5;
     tree.scale.set(scaleFactor, scaleFactor, scaleFactor);
-    
+
+    tree.receiveShadow = true;
+    tree.castShadow = true;
+
     scene.add(tree);
     trees.push(tree);
   }
@@ -303,8 +323,8 @@ function createNormalTree() {
     new THREE.MeshStandardMaterial({ color: trunkColor })
   );
 
-  const leavesRadius = 3 + Math.random() * 2;
-  const leavesHeight = 6 + Math.random() * 4;
+  const leavesRadius = 3 + Math.random() * 1;
+  const leavesHeight = 6 + Math.random() * 2;
   let leaves;
   if (Math.random() < 0.5) {
     leaves = new THREE.Mesh(
@@ -328,10 +348,6 @@ function createNormalTree() {
   leaves.castShadow = true;
   leaves.receiveShadow = true;
   return tree;
-}
-
-function updateTrees() {
-  createTrees();
 }
 
 function getBox() {
@@ -388,29 +404,29 @@ function returnParticle(particle) {
 }
 
 function createCloudLayers() {
-  const cloudTexture = new THREE.TextureLoader().load('assets/cloud.png'); // Load your cloud texture
+  const cloudTexture = new THREE.TextureLoader().load('assets/creature.png'); // Load your cloud texture
   const cloudMaterial = new THREE.MeshLambertMaterial({
     map: cloudTexture,
     transparent: true,
-    opacity: 0.2, 
+    opacity: 0.3,
     depthWrite: false,
   });
 
-  const cloudGroup = new THREE.Group(); 
+  const cloudGroup = new THREE.Group();
 
   for (let i = 0; i < cloudParams.layerCount; i++) {
-    const layer = new THREE.Group(); 
+    const layer = new THREE.Group();
 
     for (let j = 0; j < cloudParams.cloudCountPerLayer; j++) {
-      const cloudGeometry = new THREE.PlaneGeometry(400, 100);
+      const cloudGeometry = new THREE.PlaneGeometry(400, 400);
       const cloud = new THREE.Mesh(cloudGeometry, cloudMaterial);
 
       const randomVertex = terrainVertices[Math.floor(Math.random() * terrainVertices.length)];
-      
+
 
       const x = randomVertex.x + (Math.random() - 0.5) * WORLD_SIZE * 0.2; // Random offset in X
       const z = randomVertex.z + (Math.random() - 0.5) * WORLD_SIZE * 0.2; // Random offset in Z
-      const y = randomVertex.y-300; 
+      const y = randomVertex.y - 400;
 
       cloud.position.set(x, y, z);
 
@@ -424,7 +440,7 @@ function createCloudLayers() {
     }
 
     layer.position.y = i * (cloudParams.layerHeight + Math.random() * 20);
-    cloudGroup.add(layer); 
+    cloudGroup.add(layer);
   }
 
   return cloudGroup;
@@ -578,3 +594,82 @@ function getTerrainHeightAt(x, z) {
 
   return topHeight * (1 - localZ) + bottomHeight * localZ;
 }
+
+
+function updateControls() {
+  const time = performance.now();
+  const delta = (time - prevTime) / 1000;
+
+  velocity.x -= velocity.x * 10.0 * delta;
+  velocity.z -= velocity.z * 10.0 * delta;
+  velocity.y -= 9.8 * 100.0 * delta; // Add gravity
+
+  direction.z = Number(moveForward) - Number(moveBackward);
+  direction.x = Number(moveRight) - Number(moveLeft);
+  direction.normalize();
+
+  if (moveForward || moveBackward) velocity.z -= direction.z * 400.0 * delta;
+  if (moveLeft || moveRight) velocity.x -= direction.x * 400.0 * delta;
+
+  controls.moveRight(-velocity.x * delta);
+  controls.moveForward(-velocity.z * delta);
+
+  controls.getObject().position.y += velocity.y * delta;
+
+  if (controls.getObject().position.y < 10) {
+      velocity.y = 0;
+      controls.getObject().position.y = 10;
+      canJump = true;
+  }
+
+  prevTime = time;
+}
+
+function onKeyDown(event) {
+  switch (event.code) {
+      case 'ArrowUp':
+      case 'KeyW':
+          moveForward = true;
+          break;
+      case 'ArrowLeft':
+      case 'KeyA':
+          moveLeft = true;
+          break;
+      case 'ArrowDown':
+      case 'KeyS':
+          moveBackward = true;
+          break;
+      case 'ArrowRight':
+      case 'KeyD':
+          moveRight = true;
+          break;
+      case 'Space':
+          if (canJump === true) velocity.y += 350;
+          canJump = false;
+          break;
+  }
+}
+
+function onKeyUp(event) {
+  switch (event.code) {
+      case 'ArrowUp':
+      case 'KeyW':
+          moveForward = false;
+          break;
+      case 'ArrowLeft':
+      case 'KeyA':
+          moveLeft = false;
+          break;
+      case 'ArrowDown':
+      case 'KeyS':
+          moveBackward = false;
+          break;
+      case 'ArrowRight':
+      case 'KeyD':
+          moveRight = false;
+          break;
+  }
+}
+
+document.addEventListener('keydown', onKeyDown);
+document.addEventListener('keyup', onKeyUp);
