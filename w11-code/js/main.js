@@ -5,7 +5,15 @@ let params = {
 let cubes = [];
 
 const raycaster = new THREE.Raycaster();
-const pointer = new THREE.Vector2();
+const mouse = new THREE.Vector2();
+
+window.addEventListener('mousemove', function (event) {
+  mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+	mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+  console.log(mouse.x, mouse.y)
+});
+
+
 
 
 function setupThree() {
@@ -20,12 +28,26 @@ function setupThree() {
 }
 
 function updateThree() {
+
+  raycaster.setFromCamera(mouse, camera);
+  const intersects = raycaster.intersectObjects(scene.children);
+
+  /*
+  for ( let i = 0; i < intersects.length; i ++ ) {
+    intersects[ i ].object.material.color.set( 0xff0000 );
+  }*/
+
   for (let c of cubes) {
-    // c.intersect(intersections);
+    c.intersect(intersects);
     c.move();
     c.rotate();
     c.update();
   }
+
+  arrowHelper.position(x)
+
+    mouse.x = -100000000;
+    mouse.y = -100000000;
 }
 
 
@@ -86,6 +108,36 @@ class Cube {
     }
     return this;
   }
+
+  intersect(intersections) {
+    let isIntersected = false;
+
+    // for (let i of intersections) {
+    //   if (i.object === this.mesh) {
+    //     isIntersected = true;
+    //   }
+    // }
+
+
+    if (intersections.length > 0) {
+      if ( intersections[0].object === this.mesh) {
+        isIntersected = true;
+      }
+    }
+
+
+    if (isIntersected) {
+      this.mesh.material.wireframe = false;
+      this.mesh.material.color.set(0x00ff00);
+    } else {
+      this.mesh.material.wireframe = true;
+      this.mesh.material.color.set(0x0000ff);
+    }
+
+
+
+
+  }
   move() {
     this.vel.add(this.acc);
     this.pos.add(this.vel);
@@ -102,30 +154,6 @@ class Cube {
       force.div(this.mass);
     }
     this.acc.add(force);
-  }
-  intersect(intersections) {
-    let isIntersected = false;
-    // if you only want to select the first (closest) one.
-    if (intersections.length > 0) {
-      if (this.mesh === intersections[0].object) {
-        isIntersected = true;
-      }
-    }
-    /*
-    // if you want to select the whole objects on the ray.
-    for (let i of intersections) {
-      if (this.mesh  === i.object ) {
-        isIntersected = true;
-      }
-    }
-    */
-    if (isIntersected) {
-      this.mesh.material.wireframe = false;
-      this.mesh.material.color.set(0x00ff00);
-    } else {
-      this.mesh.material.wireframe = true;
-      this.mesh.material.color.set(0xffffff);
-    }
   }
   update() {
     this.mesh.position.set(this.pos.x, this.pos.y, this.pos.z);
