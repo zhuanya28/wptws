@@ -20,7 +20,7 @@ let trees = [];
 
 const WORLD_SIZE = 3000;
 const WORLD_HALF_SIZE = 1500;
-let treeCount = WORLD_SIZE/20;
+let treeCount = WORLD_SIZE / 20;
 
 let terrainWidthSegments = 200;
 let terrainHeightSegments = 200;
@@ -67,15 +67,15 @@ function setupThree() {
   scene.add(controls.getObject());
 
   document.body.addEventListener('click', function () {
-      controls.lock();
+    controls.lock();
   });
 
   controls.addEventListener('lock', function () {
-      // Handle locked state
+    // Handle locked state
   });
 
   controls.addEventListener('unlock', function () {
-      // Handle unlocked state
+    // Handle unlocked state
   });
 
   pointCloud = getPoints();
@@ -86,25 +86,10 @@ function setupThree() {
 
   setupGUI();
 
-  const loader = new GLTFLoader();
-  loader.load(
-      'assets/Tree_Japanese-larch.glb',
-      (gltf) => {
-          const model = gltf.scene;
-          model.scale.set(0.1, 0.1, 0.1);
-          scene.add(model);
-      },
-      (progress) => {
-          console.log(`Loading model: ${(progress.loaded / progress.total * 100)}%`);
-      },
-      (error) => {
-          console.error('Error loading model:', error);
-      }
-  );
-
   createTrees();
   const everything = new THREE.Group();
-  everything.add();
+  everything.add(terrain, pointCloud);  // Add specific objects
+  scene.add(everything);
 }
 
 function updateThree() {
@@ -113,14 +98,10 @@ function updateThree() {
   updateControls();
 
   cloudParticles.forEach(cloud => {
-      cloud.lookAt(camera.position);
+    cloud.lookAt(camera.position);
   });
 
-  trees.forEach(tree => {
-    if (tree.type === 'textured') {
-        tree.lookAt(camera.position);
-    }
-});
+
 
   hue = (frame * 0.0005) % 1;
 }
@@ -236,7 +217,8 @@ function updateParticles() {
   pointCloud.geometry.setDrawRange(0, particles.length);
 }
 
-// TERRAIN CREATION
+
+// CREATE TERRAIN
 function createTerrain() {
   const geometry = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE, terrainWidthSegments, terrainHeightSegments);
 
@@ -264,9 +246,16 @@ function createTerrain() {
 
     let xOffset = (x + WORLD_HALF_SIZE) * 0.005;
     let yOffset = (y + WORLD_HALF_SIZE) * 0.005;
-    let amp = 10;
-    let noiseValue = (noise(xOffset *0.5, yOffset*0.5) * amp) ** 3;
-    // manipulate the **3 depending on the distance to the center -- make a mountain? 
+    
+    // Calculate distance from one edge (e.g., right edge)
+    let distanceFromEdge = (x + WORLD_HALF_SIZE) / WORLD_SIZE;
+    
+    // Vary amplitude based on distance from edge
+    let baseAmp = 10;
+    let maxAmp = 50;
+    let amp = baseAmp + (maxAmp - baseAmp) * Math.pow(distanceFromEdge, 2);
+    
+    let noiseValue = (noise(xOffset * 0.5, yOffset * 0.5) * amp) **2;
 
     vertices[i + 2] = noiseValue;
 
@@ -274,7 +263,6 @@ function createTerrain() {
   }
   terrain.geometry.attributes.position.needsUpdate = true;
   terrain.rotation.x = Math.PI / 2;
-  // console.log(terrain.geometry.attributes.position.array);
 
   return terrain;
 }
@@ -286,7 +274,16 @@ function createTrees() {
   trees.forEach(tree => scene.remove(tree));
   trees = [];
   for (let i = 0; i < treeCount; i++) {
-    const tree = createTree();
+    let tree;
+    const treeType = Math.random();
+    if (treeType < 0.33) {
+      tree = createPineTree();
+    } else if (treeType < 0.66) {
+      tree = createNormalTree();
+    } else {
+      tree = createNormalTree();
+      // tree =  createTexturedTree();
+    }
 
 
     const randomVertex = terrainVertices[Math.floor(Math.random() * terrainVertices.length)];
@@ -302,12 +299,12 @@ function createTrees() {
     tree.position.y += 3;
 
     let scaleFactor;
-        if (tree.type === 'textured') {
-            scaleFactor = Math.random() * 20 + 0.5; // Smaller scale for textured trees
-        } else {
-            scaleFactor = Math.random() * 20 + 0.5;
-        }
-        tree.scale.set(scaleFactor, scaleFactor, scaleFactor);
+    if (tree.type === 'textured') {
+      scaleFactor = Math.random() * 5 + 1; // Adjust scale for the imported model
+    } else {
+      scaleFactor = Math.random() * 20 + 0.5;
+    }
+    tree.scale.set(scaleFactor, scaleFactor, scaleFactor);
 
 
     tree.receiveShadow = true;
@@ -318,17 +315,7 @@ function createTrees() {
   }
 }
 
-// CHOOSING TREE TYPE
-function createTree() {
-  const treeType = Math.random();
-    if (treeType < 0.33) {
-        return createPineTree();
-    } else if (treeType < 0.66) {
-        return createNormalTree();
-    } else {
-        return createTexturedTree();
-    }
-}
+
 
 
 // DRAWING TREE
@@ -413,23 +400,32 @@ function createNormalTree() {
 
 //TEXTURE FOR TREE
 function createTexturedTree() {
-  const treeTexture = new THREE.TextureLoader().load('assets/pine_tree.png');
-  const treeMaterial = new THREE.MeshStandardMaterial({
-      map: treeTexture,
-      transparent: true,
-      side: THREE.DoubleSide
-  });
-
-  const treeGeometry = new THREE.PlaneGeometry(10, 10);
-  const tree = new THREE.Mesh(treeGeometry, treeMaterial);
-
-  // Rotate the plane to face the camera
-  tree.rotation.y = Math.PI / 4;
-
-  tree.castShadow = true;
-  tree.receiveShadow = true;
-
+  const tree = new THREE.Group();
   tree.type = 'textured';
+
+  const loader = new GLTFLoader();
+  loader.load(
+    'assets/flora-tree-1.gltf',
+    (gltf) => {
+      const model = gltf.scene;
+      model.scale.set(0.5, 0.5, 0.5); // Adjust scale as needed
+      tree.add(model);
+
+      // Apply shadows to all meshes in the model
+      model.traverse((node) => {
+        if (node.isMesh) {
+          node.castShadow = true;
+          node.receiveShadow = true;
+        }
+      });
+    },
+    (progress) => {
+      console.log(`Loading tree model: ${(progress.loaded / progress.total * 100)}%`);
+    },
+    (error) => {
+      console.error('Error loading tree model:', error);
+    }
+  );
 
   return tree;
 }
@@ -663,7 +659,7 @@ function getTerrainHeightAt(x, z) {
   const index = clampedZIndex * (size + 1) + clampedXIndex;
 
   return terrainVertices[index].y;
- 
+
 }
 
 
@@ -711,47 +707,47 @@ function updateControls() {
 
 function onKeyDown(event) {
   switch (event.code) {
-      case 'ArrowUp':
-      case 'KeyW':
-          moveForward = true;
-          break;
-      case 'ArrowLeft':
-      case 'KeyA':
-          moveLeft = true;
-          break;
-      case 'ArrowDown':
-      case 'KeyS':
-          moveBackward = true;
-          break;
-      case 'ArrowRight':
-      case 'KeyD':
-          moveRight = true;
-          break;
-      case 'Space':
-          if (canJump === true) velocity.y += 350;
-          canJump = false;
-          break;
+    case 'ArrowUp':
+    case 'KeyW':
+      moveForward = true;
+      break;
+    case 'ArrowLeft':
+    case 'KeyA':
+      moveLeft = true;
+      break;
+    case 'ArrowDown':
+    case 'KeyS':
+      moveBackward = true;
+      break;
+    case 'ArrowRight':
+    case 'KeyD':
+      moveRight = true;
+      break;
+    case 'Space':
+      if (canJump === true) velocity.y += 350;
+      canJump = false;
+      break;
   }
 }
 
 function onKeyUp(event) {
   switch (event.code) {
-      case 'ArrowUp':
-      case 'KeyW':
-          moveForward = false;
-          break;
-      case 'ArrowLeft':
-      case 'KeyA':
-          moveLeft = false;
-          break;
-      case 'ArrowDown':
-      case 'KeyS':
-          moveBackward = false;
-          break;
-      case 'ArrowRight':
-      case 'KeyD':
-          moveRight = false;
-          break;
+    case 'ArrowUp':
+    case 'KeyW':
+      moveForward = false;
+      break;
+    case 'ArrowLeft':
+    case 'KeyA':
+      moveLeft = false;
+      break;
+    case 'ArrowDown':
+    case 'KeyS':
+      moveBackward = false;
+      break;
+    case 'ArrowRight':
+    case 'KeyD':
+      moveRight = false;
+      break;
   }
 }
 
