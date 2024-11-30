@@ -7,8 +7,8 @@ let treeColor2 = "#185018";
 
 let cloudParticles = [];
 
-let flyControls;
 
+let flyControls;
 
 let NUM_OF_POINTS = 30;
 let pointCloud;
@@ -20,6 +20,9 @@ let terrain;
 let trees = [];
 const WORLD_SIZE = 3000;
 const WORLD_HALF_SIZE = 1500;
+
+let terrainWidthSegments = 200;
+let terrainHeightSegments = 200;
 let sunLight, moonLight;
 let sunLightTarget, moonLightTarget;
 let hue = (frame * 0.01) % 1;
@@ -96,7 +99,7 @@ function updateThree() {
 }
 
 
-
+// SUN & MOON
 function setupLights() {
   sunLight = createSpotLight(0xE6AF2E, 1200);
   moonLight = createSpotLight(0xB1C6FF, 400);
@@ -107,6 +110,8 @@ function setupLights() {
   scene.add(sunLight, moonLight, sunLightTarget, moonLightTarget);
 }
 
+
+// SPOTLIGHT FOR SUN & MUN
 function createSpotLight(color, intensity) {
   const light = new THREE.SpotLight(color, intensity, WORLD_SIZE * 1.5, Math.PI / 2, 0, 0.7);
   light.position.set(WORLD_HALF_SIZE, 0, WORLD_HALF_SIZE);
@@ -116,6 +121,7 @@ function createSpotLight(color, intensity) {
   return light;
 }
 
+// SET SPOTLIGHT TARGET 
 function createLightTarget(color) {
   const target = getBox();
   target.position.set(0, 0, 0);
@@ -124,19 +130,40 @@ function createLightTarget(color) {
   return target;
 }
 
+// UPDATING SUN & MOON POSITIONS
+
+function updateLightPositions() {
+  updateLightPosition(sunLight, sunLightTarget, 0);
+  updateLightPosition(moonLight, moonLightTarget, Math.PI);
+}
+
+// UPDATING LIGHT POSITION (INDIVIDUAL FUNCTION)
+function updateLightPosition(light, target, offset) {
+  light.position.y = Math.sin(frame * 0.0009 + offset) * WORLD_HALF_SIZE;
+  if (light.position.y < 0) {
+    target.position.y = -WORLD_SIZE;
+  }
+  target.position.x = light.position.x;
+  target.position.z = light.position.z;
+  light.position.x = Math.cos(frame * 0.0009 + offset) * (WORLD_SIZE + 50);
+  light.position.z = 0;
+}
+
+//GUI
 function setupGUI() {
 
 }
 
 
-
+// PARTICLE CLOUD UPDATE
 function updateParticles() {
   if (frame % 5 === 0) {
     for (let i = 0; i < 2; i++) {
       let x = Math.sin(frame * 0.001) * WORLD_HALF_SIZE;
       let z = Math.cos(frame * 0.001) * WORLD_HALF_SIZE;
 
-      let y = getTerrainHeightAt(x, z) * 0.3;
+      // let y = getTerrainHeightAt(x, z) * 0.3;
+      let y = getTerrainHeightAt(x, z);
       let tParticle = getParticle()
         .setPosition(x, y, z)
         .setVelocity(random(-0.1, 0.1), random(-0.5, 0.5), random(-0.1, 0.1));
@@ -180,24 +207,9 @@ function updateParticles() {
   pointCloud.geometry.setDrawRange(0, particles.length);
 }
 
-function updateLightPositions() {
-  updateLightPosition(sunLight, sunLightTarget, 0);
-  updateLightPosition(moonLight, moonLightTarget, Math.PI);
-}
-
-function updateLightPosition(light, target, offset) {
-  light.position.y = Math.sin(frame * 0.0009 + offset) * WORLD_HALF_SIZE;
-  if (light.position.y < 0) {
-    target.position.y = -WORLD_SIZE;
-  }
-  target.position.x = light.position.x;
-  target.position.z = light.position.z;
-  light.position.x = Math.cos(frame * 0.0009 + offset) * (WORLD_SIZE + 50);
-  light.position.z = 0;
-}
-
+// TERRAIN CREATION
 function createTerrain() {
-  const geometry = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE, 200, 200);
+  const geometry = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE, terrainWidthSegments, terrainHeightSegments);
 
   const textureLoader = new THREE.TextureLoader();
   const texture = textureLoader.load('assets/ground-texture-8.png');
@@ -205,9 +217,10 @@ function createTerrain() {
   texture.wrapT = THREE.RepeatWrapping;
   texture.repeat.set(20, 20);
   const material = new THREE.MeshStandardMaterial({
-    map: texture,
+    // map: texture,
     wireframe: false,
-    side: THREE.DoubleSide
+    side: THREE.DoubleSide,
+    color: terrainColor
   });
   const terrain = new THREE.Mesh(geometry, material);
 
@@ -232,10 +245,14 @@ function createTerrain() {
   }
   terrain.geometry.attributes.position.needsUpdate = true;
   terrain.rotation.x = Math.PI / 2;
+  // console.log(terrain.geometry.attributes.position.array);
 
   return terrain;
 }
 
+
+
+// CREATING TREES
 function createTrees() {
   trees.forEach(tree => scene.remove(tree));
   trees = [];
@@ -266,6 +283,19 @@ function createTrees() {
   }
 }
 
+// CHOOSING TREE TYPE
+function createTree() {
+  if (Math.random() < 0.5) {
+    return createPineTree();
+  }
+  else {
+
+    return createNormalTree();
+  }
+}
+
+
+// DRAWING TREE
 function createPineTree() {
   const trunk = new THREE.Mesh(
     new THREE.CylinderGeometry(1, 1.5, 10, 8),
@@ -291,8 +321,6 @@ function createPineTree() {
       cone.position.y = i * 2 + 5;
       leaves.add(cone);
     }
-
-
   }
 
   const tree = new THREE.Group();
@@ -306,16 +334,7 @@ function createPineTree() {
   return tree;
 }
 
-function createTree() {
-  if (Math.random() < 0.5) {
-    return createPineTree();
-  }
-  else {
-
-    return createNormalTree();
-  }
-}
-
+// CREATE NORMAL TREE
 function createNormalTree() {
   const trunkRadius = 1 + Math.random() * 1.5;
   const trunkHeight = 8 + Math.random() * 4;
@@ -566,43 +585,32 @@ class Particle {
 }
 
 
+// CALCULATING TERRAIN
 function getTerrainHeightAt(x, z) {
-  const gridSize = Math.sqrt(terrainVertices.length); // Assuming square grid
-  const halfWorldSize = WORLD_SIZE / 2;
+  const size = Math.sqrt(terrainVertices.length) - 1;
+  const cellSize = WORLD_SIZE / size;
 
-  // Normalize world coordinates (x, z) into grid indices
-  const normalizedX = (x + halfWorldSize) / WORLD_SIZE;
-  const normalizedZ = (z + halfWorldSize) / WORLD_SIZE;
+  const xIndex = Math.floor((x + WORLD_SIZE / 2) / cellSize);
+  const zIndex = Math.floor((z + WORLD_SIZE / 2) / cellSize);
 
-  const gridX = Math.floor(normalizedX * (gridSize - 1));
-  const gridZ = Math.floor(normalizedZ * (gridSize - 1));
+  const clampedXIndex = Math.max(0, Math.min(xIndex, size));
+  const clampedZIndex = Math.max(0, Math.min(zIndex, size));
 
-  // Get indices of surrounding vertices in terrainVertices array
-  const vertexIndex = (gridZ * gridSize + gridX);
+  const index = clampedZIndex * (size + 1) + clampedXIndex;
 
-  // Get heights of surrounding vertices
-  const v1 = terrainVertices[vertexIndex];           // Top-left
-  const v2 = terrainVertices[vertexIndex + 1];       // Top-right
-  const v3 = terrainVertices[vertexIndex + gridSize]; // Bottom-left
-  const v4 = terrainVertices[vertexIndex + gridSize + 1]; // Bottom-right
-
-  // Interpolate between these four vertices based on exact position
-  const localX = normalizedX * (gridSize - 1) - gridX;
-  const localZ = normalizedZ * (gridSize - 1) - gridZ;
-
-  const topHeight = v1.y * (1 - localX) + v2.y * localX;
-  const bottomHeight = v3.y * (1 - localX) + v4.y * localX;
-
-  return topHeight * (1 - localZ) + bottomHeight * localZ;
+  return terrainVertices[index].y;
+ 
 }
 
 
+
+// NAVIGATION
 function updateControls() {
   const time = performance.now();
   const delta = (time - prevTime) / 1000;
 
-  velocity.x -= velocity.x * 10.0 * delta;
-  velocity.z -= velocity.z * 10.0 * delta;
+  velocity.x -= velocity.x * 30.0 * delta;
+  velocity.z -= velocity.z * 30.0 * delta;
   velocity.y -= 9.8 * 100.0 * delta; // Add gravity
 
   direction.z = Number(moveForward) - Number(moveBackward);
@@ -615,12 +623,18 @@ function updateControls() {
   controls.moveRight(-velocity.x * delta);
   controls.moveForward(-velocity.z * delta);
 
-  controls.getObject().position.y += velocity.y * delta;
+  const cameraPosition = controls.getObject().position;
 
-  if (controls.getObject().position.y < 10) {
-      velocity.y = 0;
-      controls.getObject().position.y = 10;
-      canJump = true;
+  const terrainHeight = getTerrainHeightAt(cameraPosition.x, cameraPosition.z);
+
+  const minHeightAboveTerrain = 10;
+
+  cameraPosition.y = Math.max(terrainHeight + minHeightAboveTerrain, cameraPosition.y + velocity.y * delta);
+
+  if (cameraPosition.y <= terrainHeight + minHeightAboveTerrain) {
+    velocity.y = 0;
+    cameraPosition.y = terrainHeight + minHeightAboveTerrain;
+    canJump = true;
   }
 
   prevTime = time;
