@@ -1,5 +1,4 @@
 
-
 let terrainColor = "#0A3200";
 let trunkColor = "#8B4513";
 let treeColor = "#0A3200"
@@ -18,8 +17,10 @@ let particlePool = [];
 let terrainVertices = [];
 let terrain;
 let trees = [];
+
 const WORLD_SIZE = 3000;
 const WORLD_HALF_SIZE = 1500;
+let treeCount = WORLD_SIZE/20;
 
 let terrainWidthSegments = 200;
 let terrainHeightSegments = 200;
@@ -37,9 +38,9 @@ let velocity = new THREE.Vector3();
 let direction = new THREE.Vector3();
 let prevTime = performance.now();
 
-let params = {
-  treeCount: WORLD_SIZE / 10
-};
+
+let moveSpeed = 400.0; // Default move speed
+
 
 const cloudParams = {
   layerCount: 10,
@@ -61,8 +62,6 @@ function setupThree() {
   scene.add(terrain);
   createTrees();
 
-  const everything = new THREE.Group();
-  everything.add();
 
   controls = new PointerLockControls(camera, renderer.domElement);
   scene.add(controls.getObject());
@@ -84,6 +83,28 @@ function setupThree() {
 
   const clouds = createCloudLayers();
   scene.add(clouds);
+
+  setupGUI();
+
+  const loader = new GLTFLoader();
+  loader.load(
+      'assets/Tree_Japanese-larch.glb',
+      (gltf) => {
+          const model = gltf.scene;
+          model.scale.set(0.1, 0.1, 0.1);
+          scene.add(model);
+      },
+      (progress) => {
+          console.log(`Loading model: ${(progress.loaded / progress.total * 100)}%`);
+      },
+      (error) => {
+          console.error('Error loading model:', error);
+      }
+  );
+
+  createTrees();
+  const everything = new THREE.Group();
+  everything.add();
 }
 
 function updateThree() {
@@ -94,6 +115,12 @@ function updateThree() {
   cloudParticles.forEach(cloud => {
       cloud.lookAt(camera.position);
   });
+
+  trees.forEach(tree => {
+    if (tree.type === 'textured') {
+        tree.lookAt(camera.position);
+    }
+});
 
   hue = (frame * 0.0005) % 1;
 }
@@ -151,7 +178,9 @@ function updateLightPosition(light, target, offset) {
 
 //GUI
 function setupGUI() {
-
+  gui.add({ moveSpeed: moveSpeed }, 'moveSpeed', 100, 1000).step(10).onChange((value) => {
+    moveSpeed = value;
+  });
 }
 
 
@@ -256,7 +285,7 @@ function createTerrain() {
 function createTrees() {
   trees.forEach(tree => scene.remove(tree));
   trees = [];
-  for (let i = 0; i < params.treeCount; i++) {
+  for (let i = 0; i < treeCount; i++) {
     const tree = createTree();
 
 
@@ -272,8 +301,14 @@ function createTrees() {
 
     tree.position.y += 3;
 
-    const scaleFactor = Math.random() * 20 + 0.5;
-    tree.scale.set(scaleFactor, scaleFactor, scaleFactor);
+    let scaleFactor;
+        if (tree.type === 'textured') {
+            scaleFactor = Math.random() * 20 + 0.5; // Smaller scale for textured trees
+        } else {
+            scaleFactor = Math.random() * 20 + 0.5;
+        }
+        tree.scale.set(scaleFactor, scaleFactor, scaleFactor);
+
 
     tree.receiveShadow = true;
     tree.castShadow = true;
@@ -285,13 +320,14 @@ function createTrees() {
 
 // CHOOSING TREE TYPE
 function createTree() {
-  if (Math.random() < 0.5) {
-    return createPineTree();
-  }
-  else {
-
-    return createNormalTree();
-  }
+  const treeType = Math.random();
+    if (treeType < 0.33) {
+        return createPineTree();
+    } else if (treeType < 0.66) {
+        return createNormalTree();
+    } else {
+        return createTexturedTree();
+    }
 }
 
 
@@ -331,6 +367,8 @@ function createPineTree() {
   leaves.receiveShadow = true;
   tree.receiveShadow = true;
 
+  tree.type = 'pine';
+
   return tree;
 }
 
@@ -367,6 +405,32 @@ function createNormalTree() {
   trunk.receiveShadow = true;
   leaves.castShadow = true;
   leaves.receiveShadow = true;
+
+  tree.type = 'normal';
+
+  return tree;
+}
+
+//TEXTURE FOR TREE
+function createTexturedTree() {
+  const treeTexture = new THREE.TextureLoader().load('assets/pine_tree.png');
+  const treeMaterial = new THREE.MeshStandardMaterial({
+      map: treeTexture,
+      transparent: true,
+      side: THREE.DoubleSide
+  });
+
+  const treeGeometry = new THREE.PlaneGeometry(10, 10);
+  const tree = new THREE.Mesh(treeGeometry, treeMaterial);
+
+  // Rotate the plane to face the camera
+  tree.rotation.y = Math.PI / 4;
+
+  tree.castShadow = true;
+  tree.receiveShadow = true;
+
+  tree.type = 'textured';
+
   return tree;
 }
 
@@ -609,28 +673,33 @@ function updateControls() {
   const time = performance.now();
   const delta = (time - prevTime) / 1000;
 
-  velocity.x -= velocity.x * 30.0 * delta;
-  velocity.z -= velocity.z * 30.0 * delta;
+  velocity.x -= velocity.x * 10.0 * delta;
+  velocity.z -= velocity.z * 10.0 * delta;
   velocity.y -= 9.8 * 100.0 * delta; // Add gravity
 
   direction.z = Number(moveForward) - Number(moveBackward);
   direction.x = Number(moveRight) - Number(moveLeft);
   direction.normalize();
 
-  if (moveForward || moveBackward) velocity.z -= direction.z * 400.0 * delta;
-  if (moveLeft || moveRight) velocity.x -= direction.x * 400.0 * delta;
+  if (moveForward || moveBackward) velocity.z -= direction.z * moveSpeed * delta;
+  if (moveLeft || moveRight) velocity.x -= direction.x * moveSpeed * delta;
 
   controls.moveRight(-velocity.x * delta);
   controls.moveForward(-velocity.z * delta);
 
+  // Get the current camera position
   const cameraPosition = controls.getObject().position;
 
+  // Calculate the terrain height at the camera's x and z position
   const terrainHeight = getTerrainHeightAt(cameraPosition.x, cameraPosition.z);
 
+  // Set a minimum height above the terrain
   const minHeightAboveTerrain = 10;
 
+  // Update the camera's y position
   cameraPosition.y = Math.max(terrainHeight + minHeightAboveTerrain, cameraPosition.y + velocity.y * delta);
 
+  // Check if the camera is on or below the terrain
   if (cameraPosition.y <= terrainHeight + minHeightAboveTerrain) {
     velocity.y = 0;
     cameraPosition.y = terrainHeight + minHeightAboveTerrain;
