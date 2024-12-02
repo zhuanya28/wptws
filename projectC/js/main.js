@@ -281,8 +281,7 @@ function createTrees() {
     } else if (treeType < 0.66) {
       tree = createNormalTree();
     } else {
-      tree = createNormalTree();
-      // tree =  createTexturedTree();
+      tree =  createTexturedTree();
     }
 
 
@@ -300,7 +299,7 @@ function createTrees() {
 
     let scaleFactor;
     if (tree.type === 'textured') {
-      scaleFactor = Math.random() * 5 + 1; // Adjust scale for the imported model
+      scaleFactor = Math.random() * 2 + 1; // Adjust scale for the imported model
     } else {
       scaleFactor = Math.random() * 20 + 0.5;
     }
@@ -405,13 +404,12 @@ function createTexturedTree() {
 
   const loader = new GLTFLoader();
   loader.load(
-    'assets/flora-tree-1.gltf',
+    'assets/pine_tree_low-poly.glb',
     (gltf) => {
       const model = gltf.scene;
       model.scale.set(0.5, 0.5, 0.5); // Adjust scale as needed
       tree.add(model);
 
-      // Apply shadows to all meshes in the model
       model.traverse((node) => {
         if (node.isMesh) {
           node.castShadow = true;
