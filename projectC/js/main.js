@@ -20,7 +20,7 @@ let trees = [];
 
 const WORLD_SIZE = 3000;
 const WORLD_HALF_SIZE = 1500;
-let treeCount = WORLD_SIZE / 20;
+let treeCount = WORLD_SIZE / 50;
 
 let terrainWidthSegments = 200;
 let terrainHeightSegments = 200;
@@ -44,7 +44,7 @@ let moveSpeed = 400.0; // Default move speed
 
 const cloudParams = {
   layerCount: 10,
-  cloudCountPerLayer: 10,
+  cloudCountPerLayer: 30,
   layerHeight: WORLD_SIZE / 1000 + 100,
   minRadius: WORLD_HALF_SIZE / 100,
   maxRadius: WORLD_HALF_SIZE / 50,
@@ -276,13 +276,11 @@ function createTrees() {
   for (let i = 0; i < treeCount; i++) {
     let tree;
     const treeType = Math.random();
-    if (treeType < 0.33) {
-      tree = createPineTree();
-    } else if (treeType < 0.66) {
-      tree = createNormalTree();
+    if (treeType < 0.5) {
+      tree = createPineTree1();
     } else {
-      tree =  createTexturedTree();
-    }
+      tree = createPineTree2();
+    } 
 
 
     const randomVertex = terrainVertices[Math.floor(Math.random() * terrainVertices.length)];
@@ -298,10 +296,10 @@ function createTrees() {
     tree.position.y += 3;
 
     let scaleFactor;
-    if (tree.type === 'textured') {
-      scaleFactor = Math.random() * 2 + 1; // Adjust scale for the imported model
+    if (tree.type === 'pine1') {
+      scaleFactor = Math.random() * 1 + 1; // Adjust scale for the imported model
     } else {
-      scaleFactor = Math.random() * 20 + 0.5;
+      scaleFactor = Math.random() * 10 + 100;
     }
     tree.scale.set(scaleFactor, scaleFactor, scaleFactor);
 
@@ -315,96 +313,45 @@ function createTrees() {
 }
 
 
-
-
-// DRAWING TREE
-function createPineTree() {
-  const trunk = new THREE.Mesh(
-    new THREE.CylinderGeometry(1, 1.5, 10, 8),
-    new THREE.MeshStandardMaterial({ color: trunkColor })
-  );
-
-  const leaves = new THREE.Group();
-  const levels = 4 + Math.floor(Math.random() * 3);
-  for (let i = 0; i < levels; i++) {
-    if (Math.random() < 0.5) {
-      const cone = new THREE.Mesh(
-        new THREE.ConeGeometry(3 - i * 0.5, 4, 8),
-        new THREE.MeshStandardMaterial({ color: treeColor })
-      );
-      cone.position.y = i * 2 + 5;
-      leaves.add(cone);
-    }
-    else {
-      const cone = new THREE.Mesh(
-        new THREE.ConeGeometry(3 - i * 0.5, 4, 8),
-        new THREE.MeshStandardMaterial({ color: treeColor2 })
-      );
-      cone.position.y = i * 2 + 5;
-      leaves.add(cone);
-    }
-  }
-
-  const tree = new THREE.Group();
-  tree.add(trunk, leaves);
-  trunk.castShadow = true;
-  trunk.receiveShadow = true;
-  leaves.castShadow = true;
-  leaves.receiveShadow = true;
-  tree.receiveShadow = true;
-
-  tree.type = 'pine';
-
-  return tree;
-}
-
-// CREATE NORMAL TREE
-function createNormalTree() {
-  const trunkRadius = 1 + Math.random() * 1.5;
-  const trunkHeight = 8 + Math.random() * 4;
-  const trunk = new THREE.Mesh(
-    new THREE.CylinderGeometry(trunkRadius, trunkRadius * 1.2, trunkHeight, 8),
-    new THREE.MeshStandardMaterial({ color: trunkColor })
-  );
-
-  const leavesRadius = 3 + Math.random() * 1;
-  const leavesHeight = 6 + Math.random() * 2;
-  let leaves;
-  if (Math.random() < 0.5) {
-    leaves = new THREE.Mesh(
-      new THREE.ConeGeometry(leavesRadius, leavesHeight, 8),
-      new THREE.MeshStandardMaterial({ color: treeColor })
-    );
-  }
-  else {
-    leaves = new THREE.Mesh(
-      new THREE.ConeGeometry(leavesRadius, leavesHeight, 8),
-      new THREE.MeshStandardMaterial({ color: treeColor2 })
-    );
-  }
-
-  leaves.position.y = trunkHeight / 2 + 2;
-  const tree = new THREE.Group();
-  tree.add(trunk, leaves);
-
-  trunk.castShadow = true;
-  trunk.receiveShadow = true;
-  leaves.castShadow = true;
-  leaves.receiveShadow = true;
-
-  tree.type = 'normal';
-
-  return tree;
-}
-
 //TEXTURE FOR TREE
-function createTexturedTree() {
+function createPineTree1() {
   const tree = new THREE.Group();
-  tree.type = 'textured';
+  tree.type = 'pine1';
 
   const loader = new GLTFLoader();
   loader.load(
     'assets/pine_tree_low-poly.glb',
+    (gltf) => {
+      const model = gltf.scene;
+      model.scale.set(0.5, 0.5, 0.5); 
+      tree.add(model);
+
+      model.traverse((node) => {
+        if (node.isMesh) {
+          node.castShadow = true;
+          node.receiveShadow = true;
+        }
+      });
+    },
+    (progress) => {
+      console.log(`Loading tree model: ${(progress.loaded / progress.total * 100)}%`);
+    },
+    (error) => {
+      console.error('Error loading tree model:', error);
+    }
+  );
+
+  return tree;
+}
+
+
+function createPineTree2() {
+  const tree = new THREE.Group();
+  tree.type = 'pine2';
+
+  const loader = new GLTFLoader();
+  loader.load(
+    'assets/pine_tree-2.glb',
     (gltf) => {
       const model = gltf.scene;
       model.scale.set(0.5, 0.5, 0.5); // Adjust scale as needed
@@ -427,6 +374,7 @@ function createTexturedTree() {
 
   return tree;
 }
+
 
 function getBox() {
   const mesh = new THREE.Mesh(
