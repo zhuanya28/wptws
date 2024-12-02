@@ -16,14 +16,16 @@ let particlePool = [];
 
 let terrainVertices = [];
 let terrain;
-let trees = [];
 
-const WORLD_SIZE = 3000;
-const WORLD_HALF_SIZE = 1500;
+
+const WORLD_SIZE = 5000;
+const WORLD_HALF_SIZE = 2500;
 let treeCount = WORLD_SIZE / 50;
+let grassCount =  50;
 
-let terrainWidthSegments = 200;
-let terrainHeightSegments = 200;
+
+let terrainWidthSegments = WORLD_SIZE/10;
+let terrainHeightSegments = WORLD_SIZE/10;
 let sunLight, moonLight;
 let sunLightTarget, moonLightTarget;
 let hue = (frame * 0.01) % 1;
@@ -60,7 +62,6 @@ function setupThree() {
   setupLights();
   terrain = createTerrain();
   scene.add(terrain);
-  createTrees();
 
 
   controls = new PointerLockControls(camera, renderer.domElement);
@@ -86,6 +87,7 @@ function setupThree() {
 
   setupGUI();
 
+  createGrass();
   createTrees();
   const everything = new THREE.Group();
   everything.add(terrain, pointCloud);  // Add specific objects
@@ -172,7 +174,6 @@ function updateParticles() {
       let x = Math.sin(frame * 0.001) * WORLD_HALF_SIZE;
       let z = Math.cos(frame * 0.001) * WORLD_HALF_SIZE;
 
-      // let y = getTerrainHeightAt(x, z) * 0.3;
       let y = getTerrainHeightAt(x, z);
       let tParticle = getParticle()
         .setPosition(x, y, z)
@@ -237,59 +238,153 @@ function createTerrain() {
 
   terrain.castShadow = true;
   terrain.receiveShadow = true;
+
+  terrain.rotation.x = Math.PI / 2;
+
   let vertices = terrain.geometry.attributes.position.array;
+  console.log(terrain.geometry.attributes.position.array);
   terrainVertices = [];
   for (let i = 0; i < vertices.length; i += 3) {
     let x = vertices[i + 0];
     let y = vertices[i + 1];
     let z = vertices[i + 2];
 
-    let xOffset = (x + WORLD_HALF_SIZE) * 0.005;
-    let yOffset = (y + WORLD_HALF_SIZE) * 0.005;
-    
-    // Calculate distance from one edge (e.g., right edge)
+    let xOffset = (x + WORLD_HALF_SIZE) * 0.002;
+    let yOffset = (y + WORLD_HALF_SIZE) * 0.002;
+
     let distanceFromEdge = (x + WORLD_HALF_SIZE) / WORLD_SIZE;
-    
-    // Vary amplitude based on distance from edge
+
     let baseAmp = 10;
     let maxAmp = 50;
-    let amp = baseAmp + (maxAmp - baseAmp) * Math.pow(distanceFromEdge, 2);
+    let amp = baseAmp + (maxAmp - baseAmp) * distanceFromEdge;
+
+    let noiseValue = noise(xOffset * 0.5, yOffset * 0.5) * amp **2;
+
+    vertices[i + 2] = -noiseValue;
     
-    let noiseValue = (noise(xOffset * 0.5, yOffset * 0.5) * amp) **2;
 
-    vertices[i + 2] = noiseValue;
-
-    terrainVertices.push({ x: x, y: noiseValue, z: y });
+    terrainVertices.push({ x: x, y: noiseValue, z: z });
   }
   terrain.geometry.attributes.position.needsUpdate = true;
-  terrain.rotation.x = Math.PI / 2;
 
   return terrain;
 }
 
 
+// grass
+function createGrass() {
+  for (let i = 0; i < grassCount; i++) {
+    let grass = new THREE.Group();
+
+    const loader = new GLTFLoader();
+    loader.load(
+      'assets/grass.glb',
+      (gltf) => {
+        const model = gltf.scene;
+        model.scale.set(40, 40,40);
+        grass.add(model);
+
+        model.traverse((node) => {
+          if (node.isMesh) {
+            node.castShadow = true;
+            node.receiveShadow = true;
+          }
+        });
+      },
+      (progress) => {
+        console.log(`Loading grass model: ${(progress.loaded / progress.total * 100)}%`);
+      },
+      (error) => {
+        console.error('Error loading grass model:', error);
+      }
+    );
+
+    //grass code
+    let x = Math.random(-WORLD_HALF_SIZE, WORLD_HALF_SIZE);
+    let z = Math.random(-WORLD_HALF_SIZE, WORLD_HALF_SIZE);
+    let y = getTerrainHeightAt(x, z);
+
+    grass.position.set(x, y, z);
+    grass.scale.set(10, 10, 10);
+
+    grass.receiveShadow = true;
+    grass.castShadow = true;
+
+    scene.add(grass);
+    console.log("added grass!");
+  }
+}
+
+
+
 
 // CREATING TREES
 function createTrees() {
-  trees.forEach(tree => scene.remove(tree));
-  trees = [];
   for (let i = 0; i < treeCount; i++) {
-    let tree;
     const treeType = Math.random();
+    let tree = new THREE.Group();
+    const loader = new GLTFLoader();
+
     if (treeType < 0.5) {
-      tree = createPineTree1();
-    } else {
-      tree = createPineTree2();
-    } 
+      tree.type = 'pine2';
+      loader.load(
+        'assets/pine_tree-2.glb',
+        (gltf) => {
+          const model = gltf.scene;
+          model.scale.set(0.5, 0.5, 0.5); // Adjust scale as needed
+          tree.add(model);
+
+          model.traverse((node) => {
+            if (node.isMesh) {
+              node.castShadow = true;
+              node.receiveShadow = true;
+            }
+          });
+        },
+        (progress) => {
+          console.log(`Loading tree model: ${(progress.loaded / progress.total * 100)}%`);
+        },
+        (error) => {
+          console.error('Error loading tree model:', error);
+        }
+      );
+    }
+    else if (treeType >= 0.5) {
+      tree.type = 'pine1'
+      loader.load(
+        'assets/pine_tree_low-poly.glb',
+        (gltf) => {
+          const model = gltf.scene;
+          model.scale.set(0.5, 0.5, 0.5);
+          tree.add(model);
+
+          model.traverse((node) => {
+            if (node.isMesh) {
+              node.castShadow = true;
+              node.receiveShadow = true;
+            }
+          });
+        },
+        (progress) => {
+          console.log(`Loading tree model: ${(progress.loaded / progress.total * 100)}%`);
+        },
+        (error) => {
+          console.error('Error loading tree model:', error);
+        }
+      );
+    }
 
 
-    const randomVertex = terrainVertices[Math.floor(Math.random() * terrainVertices.length)];
+    let x = random(-WORLD_HALF_SIZE, WORLD_HALF_SIZE);
+    let z = random(-WORLD_HALF_SIZE, WORLD_HALF_SIZE);
+    let y = getTerrainHeightAt(x, z);
+    // const randomVertex = terrainVertices[Math.floor(Math.random() * terrainVertices.length)];
 
-    const x = randomVertex.x;
-    const z = randomVertex.z;
+    // const x = randomVertex.x;
+    // const z = randomVertex.z;
 
 
-    const y = -randomVertex.y;
+    // const y = -randomVertex.y;
 
     tree.position.set(x, y, z);
 
@@ -308,72 +403,9 @@ function createTrees() {
     tree.castShadow = true;
 
     scene.add(tree);
-    trees.push(tree);
   }
 }
 
-
-//TEXTURE FOR TREE
-function createPineTree1() {
-  const tree = new THREE.Group();
-  tree.type = 'pine1';
-
-  const loader = new GLTFLoader();
-  loader.load(
-    'assets/pine_tree_low-poly.glb',
-    (gltf) => {
-      const model = gltf.scene;
-      model.scale.set(0.5, 0.5, 0.5); 
-      tree.add(model);
-
-      model.traverse((node) => {
-        if (node.isMesh) {
-          node.castShadow = true;
-          node.receiveShadow = true;
-        }
-      });
-    },
-    (progress) => {
-      console.log(`Loading tree model: ${(progress.loaded / progress.total * 100)}%`);
-    },
-    (error) => {
-      console.error('Error loading tree model:', error);
-    }
-  );
-
-  return tree;
-}
-
-
-function createPineTree2() {
-  const tree = new THREE.Group();
-  tree.type = 'pine2';
-
-  const loader = new GLTFLoader();
-  loader.load(
-    'assets/pine_tree-2.glb',
-    (gltf) => {
-      const model = gltf.scene;
-      model.scale.set(0.5, 0.5, 0.5); // Adjust scale as needed
-      tree.add(model);
-
-      model.traverse((node) => {
-        if (node.isMesh) {
-          node.castShadow = true;
-          node.receiveShadow = true;
-        }
-      });
-    },
-    (progress) => {
-      console.log(`Loading tree model: ${(progress.loaded / progress.total * 100)}%`);
-    },
-    (error) => {
-      console.error('Error loading tree model:', error);
-    }
-  );
-
-  return tree;
-}
 
 
 function getBox() {
@@ -444,7 +476,7 @@ function createCloudLayers() {
     const layer = new THREE.Group();
 
     for (let j = 0; j < cloudParams.cloudCountPerLayer; j++) {
-      const cloudGeometry = new THREE.PlaneGeometry(400, 400);
+      const cloudGeometry = new THREE.PlaneGeometry(100, 100);
       const cloud = new THREE.Mesh(cloudGeometry, cloudMaterial);
 
       const randomVertex = terrainVertices[Math.floor(Math.random() * terrainVertices.length)];
@@ -629,19 +661,14 @@ function updateControls() {
   controls.moveRight(-velocity.x * delta);
   controls.moveForward(-velocity.z * delta);
 
-  // Get the current camera position
   const cameraPosition = controls.getObject().position;
 
-  // Calculate the terrain height at the camera's x and z position
   const terrainHeight = getTerrainHeightAt(cameraPosition.x, cameraPosition.z);
 
-  // Set a minimum height above the terrain
-  const minHeightAboveTerrain = 10;
+  const minHeightAboveTerrain = 20;
 
-  // Update the camera's y position
   cameraPosition.y = Math.max(terrainHeight + minHeightAboveTerrain, cameraPosition.y + velocity.y * delta);
 
-  // Check if the camera is on or below the terrain
   if (cameraPosition.y <= terrainHeight + minHeightAboveTerrain) {
     velocity.y = 0;
     cameraPosition.y = terrainHeight + minHeightAboveTerrain;
