@@ -21,11 +21,11 @@ let terrain;
 const WORLD_SIZE = 5000;
 const WORLD_HALF_SIZE = 2500;
 let treeCount = WORLD_SIZE / 50;
-let grassCount =  50;
+let grassCount = 50;
 
 
-let terrainWidthSegments = WORLD_SIZE/10;
-let terrainHeightSegments = WORLD_SIZE/10;
+let terrainWidthSegments = WORLD_SIZE / 10;
+let terrainHeightSegments = WORLD_SIZE / 10;
 let sunLight, moonLight;
 let sunLightTarget, moonLightTarget;
 let hue = (frame * 0.01) % 1;
@@ -242,7 +242,6 @@ function createTerrain() {
   terrain.rotation.x = Math.PI / 2;
 
   let vertices = terrain.geometry.attributes.position.array;
-  console.log(terrain.geometry.attributes.position.array);
   terrainVertices = [];
   for (let i = 0; i < vertices.length; i += 3) {
     let x = vertices[i + 0];
@@ -258,15 +257,14 @@ function createTerrain() {
     let maxAmp = 50;
     let amp = baseAmp + (maxAmp - baseAmp) * distanceFromEdge;
 
-    let noiseValue = noise(xOffset * 0.5, yOffset * 0.5) * amp **2;
+    let noiseValue = noise(xOffset * 0.5, yOffset * 0.5) * amp ** 2;
 
-    vertices[i + 2] = -noiseValue;
-    
-
-    terrainVertices.push({ x: x, y: noiseValue, z: z });
+    vertices[i + 1] = -noiseValue;
+    terrainVertices.push(x,  -noiseValue, z);
   }
   terrain.geometry.attributes.position.needsUpdate = true;
-
+  // console.log(terrain.geometry.attributes.position.array.length);
+  // console.log(terrainVertices.length*3);
   return terrain;
 }
 
@@ -281,7 +279,7 @@ function createGrass() {
       'assets/grass.glb',
       (gltf) => {
         const model = gltf.scene;
-        model.scale.set(40, 40,40);
+        model.scale.set(40, 40, 40);
         grass.add(model);
 
         model.traverse((node) => {
@@ -378,6 +376,8 @@ function createTrees() {
     let x = random(-WORLD_HALF_SIZE, WORLD_HALF_SIZE);
     let z = random(-WORLD_HALF_SIZE, WORLD_HALF_SIZE);
     let y = getTerrainHeightAt(x, z);
+
+
     // const randomVertex = terrainVertices[Math.floor(Math.random() * terrainVertices.length)];
 
     // const x = randomVertex.x;
@@ -479,12 +479,11 @@ function createCloudLayers() {
       const cloudGeometry = new THREE.PlaneGeometry(100, 100);
       const cloud = new THREE.Mesh(cloudGeometry, cloudMaterial);
 
-      const randomVertex = terrainVertices[Math.floor(Math.random() * terrainVertices.length)];
 
-
-      const x = randomVertex.x + (Math.random() - 0.5) * WORLD_SIZE * 0.2; // Random offset in X
-      const z = randomVertex.z + (Math.random() - 0.5) * WORLD_SIZE * 0.2; // Random offset in Z
-      const y = randomVertex.y - 400;
+      const randomIndex = Math.floor(Math.random() * (terrainVertices.length / 3)) * 3;
+      const x = terrainVertices[randomIndex] + (Math.random() - 0.5) * WORLD_SIZE * 0.2;
+      const z = terrainVertices[randomIndex + 2] + (Math.random() - 0.5) * WORLD_SIZE * 0.2;
+      const y = terrainVertices[randomIndex + 1] - 400;
 
       cloud.position.set(x, y, z);
 
@@ -625,19 +624,16 @@ class Particle {
 
 // CALCULATING TERRAIN
 function getTerrainHeightAt(x, z) {
-  const size = Math.sqrt(terrainVertices.length) - 1;
+  const size = Math.sqrt(terrainVertices.length / 3) - 1;
   const cellSize = WORLD_SIZE / size;
-
-  const xIndex = Math.floor((x + WORLD_SIZE / 2) / cellSize);
-  const zIndex = Math.floor((z + WORLD_SIZE / 2) / cellSize);
+  const xIndex = Math.floor((x + WORLD_HALF_SIZE) / cellSize);
+  const zIndex = Math.floor((z + WORLD_HALF_SIZE) / cellSize);
 
   const clampedXIndex = Math.max(0, Math.min(xIndex, size));
   const clampedZIndex = Math.max(0, Math.min(zIndex, size));
 
-  const index = clampedZIndex * (size + 1) + clampedXIndex;
-
-  return terrainVertices[index].y;
-
+  const index = (clampedZIndex * (size + 1) + clampedXIndex) * 3;
+  return terrainVertices[index + 1]; // Y-coordinate is at index + 1
 }
 
 
