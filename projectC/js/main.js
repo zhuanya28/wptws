@@ -14,18 +14,18 @@ let pointCloud;
 let particles = [];
 let particlePool = [];
 
-let terrainVertices = [];
 let terrain;
 
+let rayToBottom;
 
-const WORLD_SIZE = 5000;
-const WORLD_HALF_SIZE = 2500;
+
+const WORLD_SIZE = 3000;
+const WORLD_HALF_SIZE = 1500;
 let treeCount = WORLD_SIZE / 50;
 let grassCount = 50;
 
-
-let terrainWidthSegments = WORLD_SIZE / 10;
-let terrainHeightSegments = WORLD_SIZE / 10;
+let terrainWidthSegments = 200;
+let terrainHeightSegments = 200;
 let sunLight, moonLight;
 let sunLightTarget, moonLightTarget;
 let hue = (frame * 0.01) % 1;
@@ -42,6 +42,11 @@ let prevTime = performance.now();
 
 
 let moveSpeed = 400.0; // Default move speed
+
+
+const raycaster = new THREE.Raycaster();
+const startPoint = new THREE.Vector3();
+const directionRay = new THREE.Vector3(0, -1, 0);
 
 
 const cloudParams = {
@@ -63,8 +68,7 @@ function setupThree() {
   terrain = createTerrain();
   scene.add(terrain);
 
-
-  controls = new PointerLockControls(camera, renderer.domElement);
+  controls = new PointerLockControls(camera, document.body);
   scene.add(controls.getObject());
 
   document.body.addEventListener('click', function () {
@@ -87,7 +91,7 @@ function setupThree() {
 
   setupGUI();
 
-  createGrass();
+  // createGrass();
   createTrees();
   const everything = new THREE.Group();
   everything.add(terrain, pointCloud);  // Add specific objects
@@ -141,7 +145,6 @@ function createLightTarget(color) {
 }
 
 // UPDATING SUN & MOON POSITIONS
-
 function updateLightPositions() {
   updateLightPosition(sunLight, sunLightTarget, 0);
   updateLightPosition(moonLight, moonLightTarget, Math.PI);
@@ -173,7 +176,6 @@ function updateParticles() {
     for (let i = 0; i < 2; i++) {
       let x = Math.sin(frame * 0.001) * WORLD_HALF_SIZE;
       let z = Math.cos(frame * 0.001) * WORLD_HALF_SIZE;
-
       let y = getTerrainHeightAt(x, z);
       let tParticle = getParticle()
         .setPosition(x, y, z)
@@ -185,15 +187,17 @@ function updateParticles() {
   let posArray = pointCloud.geometry.attributes.position.array;
   let colorArray = pointCloud.geometry.attributes.color.array;
 
-  for (let i = 0; i < particles.length; i++) {
+  for (let i = particles.length - 1; i >= 0; i--) {
     let p = particles[i];
     p.move();
     p.flow();
     p.age();
+
     let ptIndex = i * 3;
     posArray[ptIndex] = p.pos.x;
     posArray[ptIndex + 1] = p.pos.y;
     posArray[ptIndex + 2] = p.pos.z;
+    
     colorArray[ptIndex] = p.r * p.lifespan;
     colorArray[ptIndex + 1] = p.g * p.lifespan;
     colorArray[ptIndex + 2] = p.b * p.lifespan;
@@ -203,14 +207,8 @@ function updateParticles() {
     }
 
     if (p.isDone) {
-      returnParticle(p);
-      particles.splice(i, 1);
-      i--;
+      returnParticle(particles.splice(i, 1)[0]);
     }
-  }
-
-  while (particles.length > NUM_OF_POINTS) {
-    returnParticle(particles.shift());
   }
 
   pointCloud.geometry.attributes.position.needsUpdate = true;
@@ -239,32 +237,27 @@ function createTerrain() {
   terrain.castShadow = true;
   terrain.receiveShadow = true;
 
-  terrain.rotation.x = Math.PI / 2;
+  let posArray = geometry.attributes.position.array; 
+  for (let i = 0; i < posArray.length; i += 3) {
 
-  let vertices = terrain.geometry.attributes.position.array;
-  terrainVertices = [];
-  for (let i = 0; i < vertices.length; i += 3) {
-    let x = vertices[i + 0];
-    let y = vertices[i + 1];
-    let z = vertices[i + 2];
+    let x = posArray[i + 0];
+    let y = posArray[i + 1];
+    let z = posArray[i + 2];
 
-    let xOffset = (x + WORLD_HALF_SIZE) * 0.002;
-    let yOffset = (y + WORLD_HALF_SIZE) * 0.002;
+    let xOffset = (x + WORLD_HALF_SIZE) * 0.02;
+    let yOffset = (y + WORLD_HALF_SIZE) * 0.02;
+    let amp = 3;
 
     let distanceFromEdge = (x + WORLD_HALF_SIZE) / WORLD_SIZE;
 
-    let baseAmp = 10;
-    let maxAmp = 50;
-    let amp = baseAmp + (maxAmp - baseAmp) * distanceFromEdge;
+    let noiseValue = (noise(xOffset, yOffset) * amp) ** 3;
 
-    let noiseValue = noise(xOffset * 0.5, yOffset * 0.5) * amp ** 2;
-
-    vertices[i + 1] = -noiseValue;
-    terrainVertices.push(x,  -noiseValue, z);
+    posArray[i + 2] = noiseValue; 
   }
+  terrain.rotation.x = Math.PI / 2;
   terrain.geometry.attributes.position.needsUpdate = true;
-  // console.log(terrain.geometry.attributes.position.array.length);
-  // console.log(terrainVertices.length*3);
+  terrain.geometry.computeBoundingBox();
+
   return terrain;
 }
 
@@ -377,18 +370,8 @@ function createTrees() {
     let z = random(-WORLD_HALF_SIZE, WORLD_HALF_SIZE);
     let y = getTerrainHeightAt(x, z);
 
-
-    // const randomVertex = terrainVertices[Math.floor(Math.random() * terrainVertices.length)];
-
-    // const x = randomVertex.x;
-    // const z = randomVertex.z;
-
-
-    // const y = -randomVertex.y;
-
     tree.position.set(x, y, z);
 
-    tree.position.y += 3;
 
     let scaleFactor;
     if (tree.type === 'pine1') {
@@ -480,12 +463,11 @@ function createCloudLayers() {
       const cloud = new THREE.Mesh(cloudGeometry, cloudMaterial);
 
 
-      const randomIndex = Math.floor(Math.random() * (terrainVertices.length / 3)) * 3;
-      const x = terrainVertices[randomIndex] + (Math.random() - 0.5) * WORLD_SIZE * 0.2;
-      const z = terrainVertices[randomIndex + 2] + (Math.random() - 0.5) * WORLD_SIZE * 0.2;
-      const y = terrainVertices[randomIndex + 1] - 400;
+      let x = random(-WORLD_HALF_SIZE, WORLD_HALF_SIZE);
+      let z = random(-WORLD_HALF_SIZE, WORLD_HALF_SIZE);
+      let y = getTerrainHeightAt(x, z);
 
-      cloud.position.set(x, y, z);
+      cloud.position.set(x, y+10, z);
 
       cloud.rotation.z = Math.random() * Math.PI * 2;
 
@@ -622,20 +604,58 @@ class Particle {
 }
 
 
-// CALCULATING TERRAIN
-function getTerrainHeightAt(x, z) {
-  const size = Math.sqrt(terrainVertices.length / 3) - 1;
-  const cellSize = WORLD_SIZE / size;
-  const xIndex = Math.floor((x + WORLD_HALF_SIZE) / cellSize);
-  const zIndex = Math.floor((z + WORLD_HALF_SIZE) / cellSize);
+class Ray {
+  constructor() {
+    this.raycaster = new THREE.Raycaster();
+    this.raycaster.ray.origin = new THREE.Vector3(0, 0, 0); 
+    this.raycaster.ray.direction = new THREE.Vector3(0, -1, 0); 
 
-  const clampedXIndex = Math.max(0, Math.min(xIndex, size));
-  const clampedZIndex = Math.max(0, Math.min(zIndex, size));
+    // optional
+    this.intersectionMarker = this.getMarkerMesh();
+    this.intersectionMarker.scale.set(10, 10, 10);
+    this.intersectionMarker.material.color.set(0xff0000);
+    scene.add(this.intersectionMarker);
+  }
+  updateOrigin(position) {
+    this.raycaster.ray.origin.copy(position);
+  }
+  getMarkerMesh() {
+    const geometry = new THREE.BoxGeometry(1, 1, 1);
+    const material = new THREE.MeshBasicMaterial();
+    const mesh = new THREE.Mesh(geometry, material);
+    return mesh;
+  }
+  checkIntersection(objects) {
+    const intersects = this.raycaster.intersectObjects(objects);
 
-  const index = (clampedZIndex * (size + 1) + clampedXIndex) * 3;
-  return terrainVertices[index + 1]; // Y-coordinate is at index + 1
+    if (intersects.length > 0) {
+      const intersection = intersects[0]; // the first intersection (closest object)
+
+      const intersectionPosition = intersection.point;
+      console.log('Intersection Position:', intersectionPosition);
+
+      this.intersectionMarker.position.copy(intersectionPosition);
+    } else {
+      console.log('Nothing below.');
+    }
+  }
 }
 
+
+  function getTerrainHeightAt(x, z) {
+    const raycaster = new THREE.Raycaster();
+    const origin = new THREE.Vector3(x, WORLD_HALF_SIZE, z);
+    const direction = new THREE.Vector3(0, -1, 0);
+    raycaster.set(origin, direction);
+  
+    const intersects = raycaster.intersectObject(terrain);
+  
+    if (intersects.length > 0) {
+      return intersects[0].point.y;
+    } else {
+      return null; 
+    }
+  }
 
 
 // NAVIGATION
@@ -658,17 +678,17 @@ function updateControls() {
   controls.moveForward(-velocity.z * delta);
 
   const cameraPosition = controls.getObject().position;
-
   const terrainHeight = getTerrainHeightAt(cameraPosition.x, cameraPosition.z);
 
-  const minHeightAboveTerrain = 20;
+  if (terrainHeight !== null) {
+    const minHeightAboveTerrain = 20;
+    cameraPosition.y = Math.max(terrainHeight + minHeightAboveTerrain, cameraPosition.y + velocity.y * delta);
 
-  cameraPosition.y = Math.max(terrainHeight + minHeightAboveTerrain, cameraPosition.y + velocity.y * delta);
-
-  if (cameraPosition.y <= terrainHeight + minHeightAboveTerrain) {
-    velocity.y = 0;
-    cameraPosition.y = terrainHeight + minHeightAboveTerrain;
-    canJump = true;
+    if (cameraPosition.y <= terrainHeight + minHeightAboveTerrain) {
+      velocity.y = 0;
+      cameraPosition.y = terrainHeight + minHeightAboveTerrain;
+      canJump = true;
+    }
   }
 
   prevTime = time;
