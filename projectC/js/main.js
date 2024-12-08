@@ -45,7 +45,7 @@ let direction = new THREE.Vector3();
 let prevTime = performance.now();
 
 
-let moveSpeed = 400.0; // Default move speed
+let moveSpeed = 800.0; // Default move speed
 
 
 const raycaster = new THREE.Raycaster();
@@ -57,6 +57,11 @@ let numOfClouds = WORLD_SIZE / 100;
 let cloudGroup;
 
 let particleGroups = [];
+
+let audioContext;
+
+const listener = new THREE.AudioListener();
+
 
 
 function setupThree() {
@@ -92,6 +97,16 @@ function setupThree() {
   // createGrass();
   createTrees();
   createParticleGroups(10);
+
+  //music 
+
+  document.body.addEventListener('click', initAudio, { once: true });
+  camera.add(listener);
+}
+
+function initAudio() {
+  audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  // Other audio initializations if needed...
 }
 
 function updateThree() {
@@ -104,7 +119,7 @@ function updateThree() {
     });
   }
   hue = (frame * 0.0005) % 1;
-  particleGroups.forEach(group => group.update(frame));
+  particleGroups.forEach(group => group.update(frame, camera));
 
 }
 
@@ -431,6 +446,16 @@ class ParticleGroup {
 
     this.resetParticle();
 
+    this.sound = new THREE.PositionalAudio(listener);
+    const audioLoader = new THREE.AudioLoader();
+    audioLoader.load('assets/magic_sound.mp3', (buffer) => {
+      this.sound.setBuffer(buffer);
+      this.sound.setRefDistance(50);
+      this.sound.setLoop(true);
+      this.sound.setVolume(0);
+    });
+    this.particle.add(this.sound);
+
     scene.add(this.particle);
   }
 
@@ -441,7 +466,7 @@ class ParticleGroup {
     this.particle.position.set(x, terrainHeight + 30, z);
   }
 
-  update(frame) {
+  update(frame, camera) {
     const pos = this.particle.position;
     pos.x += this.velocity.x;
     pos.z += this.velocity.z;
@@ -465,6 +490,18 @@ class ParticleGroup {
     const color = new THREE.Color().setHSL(hue, 1, 0.5);
     this.light.color = color;
     this.particle.material.color = color;
+
+
+    const distance = this.particle.position.distanceTo(camera.position);
+    const maxDistance = 500;
+    const volume = Math.max(0, 1 - distance / maxDistance);
+    this.sound.setVolume(volume);
+
+    if (volume > 0 && !this.sound.isPlaying) {
+      this.sound.play();
+    } else if (volume === 0 && this.sound.isPlaying) {
+      this.sound.pause();
+    }
   }
 }
 
