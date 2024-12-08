@@ -17,7 +17,6 @@ let treeColor2 = "#185018";
 
 let cloudParticles = [];
 
-
 let flyControls;
 
 let NUM_OF_POINTS = 30;
@@ -30,8 +29,8 @@ let terrain;
 let rayToBottom;
 
 
-const WORLD_SIZE = 3000;
-const WORLD_HALF_SIZE = 1500;
+const WORLD_SIZE = 5000;
+const WORLD_HALF_SIZE = 2500;
 let treeCount = WORLD_SIZE / 50;
 let grassCount = 50;
 
@@ -60,13 +59,10 @@ const startPoint = new THREE.Vector3();
 const directionRay = new THREE.Vector3(0, -1, 0);
 
 
-const cloudParams = {
-  layerCount: 10,
-  cloudCountPerLayer: 30,
-  layerHeight: WORLD_SIZE / 1000 + 100,
-  minRadius: WORLD_HALF_SIZE / 100,
-  maxRadius: WORLD_HALF_SIZE / 50,
-};
+let numOfClouds = WORLD_SIZE / 50;
+let cloudGroup;
+
+
 
 function setupThree() {
   const renderer = new THREE.WebGLRenderer();
@@ -94,11 +90,7 @@ function setupThree() {
     // Handle unlocked state
   });
 
-  pointCloud = getPoints();
-  scene.add(pointCloud);
-
-  const clouds = createCloudLayers();
-  scene.add(clouds);
+  cloudGroup = createClouds();
 
   setupGUI();
 
@@ -114,9 +106,11 @@ function updateThree() {
   // updateParticles();
   updateControls();
 
-  cloudParticles.forEach(cloud => {
-    cloud.lookAt(camera.position);
-  });
+  if (cloudGroup) {
+    cloudGroup.children.forEach(cloud => {
+      cloud.lookAt(camera.position);
+    });
+  }
 
   hue = (frame * 0.0005) % 1;
 }
@@ -125,16 +119,16 @@ function updateThree() {
 // SUN & MOON
 function setupLights() {
   sunLight = createSpotLight(0xE6AF2E, 1200);
-  moonLight = createSpotLight(0xB1C6FF, 400);
+  moonLight = createSpotLight(0xB1C6FF, 600);
   sunLightTarget = createLightTarget(0xE6AF2E);
-  moonLightTarget = createLightTarget(0x0E34A0);
+  moonLightTarget = createLightTarget(0xB1C6FF);
   sunLight.target = sunLightTarget;
   moonLight.target = moonLightTarget;
   scene.add(sunLight, moonLight, sunLightTarget, moonLightTarget);
 }
 
 
-// SPOTLIGHT FOR SUN & MUN
+// SPOTLIGHT FOR SUN & MOON
 function createSpotLight(color, intensity) {
   const light = new THREE.SpotLight(color, intensity, WORLD_SIZE * 1.5, Math.PI / 2, 0, 0.7);
   light.position.set(WORLD_HALF_SIZE, 0, WORLD_HALF_SIZE);
@@ -178,52 +172,43 @@ function setupGUI() {
   });
 }
 
+function createClouds() {
+  const cloudTexture = new THREE.TextureLoader().load('assets/creature.png');
+  const cloudMaterial = new THREE.MeshLambertMaterial({
+    map: cloudTexture,
+    transparent: true,
+    opacity: 0.3,
+    depthWrite: false,
+  });
+
+  const cloudGroup = new THREE.Group();
+
+  for (let i = 0; i < numOfClouds; i++) {
+
+    const cloudGeometry = new THREE.PlaneGeometry(100, 100);
+    const cloud = new THREE.Mesh(cloudGeometry, cloudMaterial);
+
+
+    let x = random(-WORLD_HALF_SIZE, WORLD_HALF_SIZE);
+    let z = random(-WORLD_HALF_SIZE, WORLD_HALF_SIZE);
+    let y = getTerrainHeightAt(x, z);
+
+    let size = 50 + Math.random() * 1;
+
+    cloud.position.set(x, y + size / 2, z);
+    cloud.scale.set(size, size, size);
+
+    cloudGroup.add(cloud);
+
+  }
+
+  scene.add(cloudGroup);
+  return cloudGroup;
+}
+
 
 // PARTICLE CLOUD UPDATE
-function updateParticles() {
-  if (frame % 5 === 0) {
-    for (let i = 0; i < 2; i++) {
-      let x = Math.sin(frame * 0.001) * WORLD_HALF_SIZE;
-      let z = Math.cos(frame * 0.001) * WORLD_HALF_SIZE;
-      let y = getTerrainHeightAt(x, z);  // ***
-      let tParticle = getParticle()
-        .setPosition(x, y, z)
-        .setVelocity(random(-0.1, 0.1), random(-0.5, 0.5), random(-0.1, 0.1));
-      particles.push(tParticle);
-    }
-  }
 
-  let posArray = pointCloud.geometry.attributes.position.array;
-  let colorArray = pointCloud.geometry.attributes.color.array;
-
-  for (let i = particles.length - 1; i >= 0; i--) {
-    let p = particles[i];
-    p.move();
-    p.flow();
-    p.age();
-
-    let ptIndex = i * 3;
-    posArray[ptIndex] = p.pos.x;
-    posArray[ptIndex + 1] = p.pos.y;
-    posArray[ptIndex + 2] = p.pos.z;
-
-    colorArray[ptIndex] = p.r * p.lifespan;
-    colorArray[ptIndex + 1] = p.g * p.lifespan;
-    colorArray[ptIndex + 2] = p.b * p.lifespan;
-
-    if (frame % 3 === 0) {
-      p.updateLight();
-    }
-
-    if (p.isDone) {
-      returnParticle(particles.splice(i, 1)[0]);
-    }
-  }
-
-  pointCloud.geometry.attributes.position.needsUpdate = true;
-  pointCloud.geometry.attributes.color.needsUpdate = true;
-  pointCloud.geometry.setDrawRange(0, particles.length);
-}
 
 
 // CREATE TERRAIN
@@ -332,11 +317,12 @@ function createTrees() {
         'assets/pine_tree-2.glb',
         (gltf) => {
           const model = gltf.scene;
-          model.scale.set(0.5, 0.5, 0.5); // Adjust scale as needed
+          model.scale.set(0.5, 0.5, 0.5);
           tree.add(model);
 
           model.traverse((node) => {
             if (node.isMesh) {
+              node.geometry.translate(0, 0.5, 0);
               node.castShadow = true;
               node.receiveShadow = true;
             }
@@ -361,6 +347,7 @@ function createTrees() {
 
           model.traverse((node) => {
             if (node.isMesh) {
+              node.geometry.translate(0, 0.5, 0);
               node.castShadow = true;
               node.receiveShadow = true;
             }
@@ -379,17 +366,15 @@ function createTrees() {
     let x = random(-WORLD_HALF_SIZE, WORLD_HALF_SIZE);
     let z = random(-WORLD_HALF_SIZE, WORLD_HALF_SIZE);
     let y = getTerrainHeightAt(x, z);
-    tree.position.set(x, y, z);
-
+    tree.position.set(x, y - 10, z);
 
     let scaleFactor;
     if (tree.type === 'pine1') {
-      scaleFactor = Math.random() * 1 + 1; // Adjust scale for the imported model
+      scaleFactor = Math.random() * 1 + 1;
     } else {
       scaleFactor = Math.random() * 10 + 100;
     }
 
-    // translation is missing!
     tree.scale.set(scaleFactor, scaleFactor, scaleFactor);
 
 
@@ -455,46 +440,6 @@ function returnParticle(particle) {
   particlePool.push(particle);
 }
 
-function createCloudLayers() {
-  const cloudTexture = new THREE.TextureLoader().load('assets/creature.png'); // Load your cloud texture
-  const cloudMaterial = new THREE.MeshLambertMaterial({
-    map: cloudTexture,
-    transparent: true,
-    opacity: 0.3,
-    depthWrite: false,
-  });
-
-  const cloudGroup = new THREE.Group();
-
-  for (let i = 0; i < cloudParams.layerCount; i++) {
-    const layer = new THREE.Group();
-
-    for (let j = 0; j < cloudParams.cloudCountPerLayer; j++) {
-      const cloudGeometry = new THREE.PlaneGeometry(100, 100);
-      const cloud = new THREE.Mesh(cloudGeometry, cloudMaterial);
-
-
-      let x = random(-WORLD_HALF_SIZE, WORLD_HALF_SIZE);
-      let z = random(-WORLD_HALF_SIZE, WORLD_HALF_SIZE);
-      let y = 0; //getTerrainHeightAt(x, z);
-
-      cloud.position.set(x, y + 10, z);
-
-      cloud.rotation.z = Math.random() * Math.PI * 2;
-
-      const scale = 2 + Math.random() * 1;
-      cloud.scale.set(scale, scale, scale);
-
-      layer.add(cloud);
-      cloudParticles.push(cloud);
-    }
-
-    layer.position.y = i * (cloudParams.layerHeight + Math.random() * 20);
-    cloudGroup.add(layer);
-  }
-
-  return cloudGroup;
-}
 class Particle {
   constructor(emitsLight) {
     this.pos = createVector();
