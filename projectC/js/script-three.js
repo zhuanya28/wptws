@@ -39,7 +39,6 @@ function animate() {
   frame++;
 
   updateThree(); // ***
-
   renderer.render(scene, camera);
 }
 
