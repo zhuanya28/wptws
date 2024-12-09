@@ -1,14 +1,3 @@
-/*
-terrran
-- noise?
-- trees'y to terrain?
-
-
-
-
-*/
-
-
 
 let terrainColor = "#0A3200";
 let trunkColor = "#8B4513";
@@ -23,8 +12,8 @@ let terrain;
 let rayToBottom;
 
 
-const WORLD_SIZE = 5000;
-const WORLD_HALF_SIZE = 2500;
+const WORLD_SIZE = 4000;
+const WORLD_HALF_SIZE = 2000;
 let treeCount = WORLD_SIZE / 30;
 let grassCount = 50;
 
@@ -45,7 +34,7 @@ let direction = new THREE.Vector3();
 let prevTime = performance.now();
 
 
-let moveSpeed = 800.0; // Default move speed
+let moveSpeed = 1000.0; // Default move speed
 
 
 const raycaster = new THREE.Raycaster();
@@ -61,6 +50,8 @@ let particleGroups = [];
 let audioContext;
 
 const listener = new THREE.AudioListener();
+
+let speedOfSunAndMoon = 0.005;
 
 
 
@@ -92,14 +83,14 @@ function setupThree() {
 
   cloudGroup = createClouds();
 
+  createChurch();
   setupGUI();
 
   // createGrass();
   createTrees();
-  createParticleGroups(10);
+  createParticleGroups(15);
 
   //music 
-
   document.body.addEventListener('click', initAudio, { once: true });
   camera.add(listener);
 }
@@ -160,15 +151,15 @@ function updateLightPositions() {
   updateLightPosition(sunLight, sunLightTarget, 0);
   updateLightPosition(moonLight, moonLightTarget, Math.PI);
 
-  const sunPosition = Math.sin(frame * 0.0009);
-  const transitionFactor = (sunPosition + 1) / 2; // Normalize to 0-1 range
+  const sunPosition = Math.sin(frame * speedOfSunAndMoon);
+  const transitionFactor = (sunPosition + 1) / 2;
 
-  const dayBgColor = new THREE.Color(0x87CEEB); // Sky blue
-  const dayFogColor = new THREE.Color(0xADD8E6); // Light blue
+  const dayBgColor = new THREE.Color(0x87CEEB);
+  const dayFogColor = new THREE.Color(0xADD8E6);
 
   // Night colors
-  const nightBgColor = new THREE.Color(0x120A2A); // Dark violet
-  const nightFogColor = new THREE.Color(0x1A0F3D); // Mysterious violet
+  const nightBgColor = new THREE.Color(0x120A2A);
+  const nightFogColor = new THREE.Color(0x1A0F3D);
 
   // Interpolate colors
   const currentBgColor = new THREE.Color();
@@ -181,12 +172,12 @@ function updateLightPositions() {
 
   // Update fog color and density
   scene.fog.color.copy(currentFogColor);
-  scene.fog.near = 2 + transitionFactor * 8; // Adjust fog near value
-  scene.fog.far = WORLD_SIZE / 3 + transitionFactor * (WORLD_SIZE * 2 / 3); // Adjust fog far value
+  scene.fog.near = 2 + transitionFactor * 8;
+  scene.fog.far = WORLD_SIZE / 3 + transitionFactor * (WORLD_SIZE * 2 / 3);
 
   // Adjust light intensities
-  sunLight.intensity = 1200 * transitionFactor;
-  moonLight.intensity = 600 * (1 - transitionFactor);
+  sunLight.intensity = 2400 * transitionFactor;
+  moonLight.intensity = 1200 * (1 - transitionFactor);
 }
 
 function isDaytime() {
@@ -195,19 +186,19 @@ function isDaytime() {
 
 // UPDATING LIGHT POSITION (INDIVIDUAL FUNCTION)
 function updateLightPosition(light, target, offset) {
-  light.position.y = Math.sin(frame * 0.0009 + offset) * WORLD_HALF_SIZE;
+  light.position.y = Math.sin(frame * speedOfSunAndMoon + offset) * WORLD_HALF_SIZE;
   if (light.position.y < 0) {
     target.position.y = -WORLD_SIZE;
   }
   target.position.x = light.position.x;
   target.position.z = light.position.z;
-  light.position.x = Math.cos(frame * 0.0009 + offset) * (WORLD_SIZE + 50);
+  light.position.x = Math.cos(frame * speedOfSunAndMoon + offset) * (WORLD_SIZE + 50);
   light.position.z = 0;
 }
 
 //GUI
 function setupGUI() {
-  gui.add({ moveSpeed: moveSpeed }, 'moveSpeed', 100, 1000).step(10).onChange((value) => {
+  gui.add({ moveSpeed: moveSpeed }, 'moveSpeed', 100, 1500).step(10).onChange((value) => {
     moveSpeed = value;
   });
 }
@@ -233,7 +224,7 @@ function createClouds() {
     let z = random(-WORLD_HALF_SIZE, WORLD_HALF_SIZE);
     let y = getTerrainHeightAt(x, z);
 
-    let size = 50 + Math.random() * 1;
+    let size = 20 + Math.random() * 20;
 
     cloud.position.set(x, y + size / 2, z);
     cloud.scale.set(size, size, size);
@@ -276,12 +267,9 @@ function createTerrain() {
 
     let x = posArray[i + 0];
     let y = posArray[i + 1];
-    let z = posArray[i + 2];
 
     let xOffset = (x + WORLD_HALF_SIZE) * 0.0012;
     let yOffset = (y + WORLD_HALF_SIZE) * 0.0012;
-
-    let distanceFromCenter = abs(x);
 
     let noiseValue = noise(xOffset, yOffset) * 1000 * -1;
 
@@ -414,7 +402,7 @@ function getTerrainHeightAt(x, z) {
 function createParticleGroups(numberOfGroups) {
   const texture = new THREE.TextureLoader().load('assets/sprite.jpg');
   for (let i = 0; i < numberOfGroups; i++) {
-    const group = new ParticleGroup(texture, 0.5 + Math.random() * 1, 5 + Math.random() * 5);
+    const group = new ParticleGroup(texture, 0.5, 5 + Math.random() * 5);
     particleGroups.push(group);
   }
 }
@@ -483,7 +471,7 @@ class ParticleGroup {
 
     const baseIntensity = 5000;
     const intensityVariation = 1000;
-    const intensity = baseIntensity + intensityVariation * Math.sin(frame * 0.05);
+    const intensity = baseIntensity + intensityVariation * Math.sin(frame * 0.5);
     this.light.intensity = intensity;
 
     const hue = (frame * 0.001) % 1;
@@ -521,12 +509,21 @@ function updateControls() {
   if (moveForward || moveBackward) velocity.z -= direction.z * moveSpeed * delta;
   if (moveLeft || moveRight) velocity.x -= direction.x * moveSpeed * delta;
 
-  controls.moveRight(-velocity.x * delta);
-  controls.moveForward(-velocity.z * delta);
-
-  //const cameraPosition = controls.getObject().position;
   const cameraPosition = controls.object.position;
   const terrainHeight = getTerrainHeightAt(cameraPosition.x, cameraPosition.z);
+  const buffer = 20;
+  const isWithinBounds =
+    Math.abs(cameraPosition.x) < WORLD_HALF_SIZE - buffer &&
+    Math.abs(cameraPosition.z) < WORLD_HALF_SIZE - buffer;
+
+  if (isWithinBounds) {
+    controls.moveRight(-velocity.x * delta);
+    controls.moveForward(-velocity.z * delta);
+  } else {
+    controls.object.position.x = 0;
+    controls.object.position.z = 0;
+  }
+
 
   if (terrainHeight !== null) {
     const minHeightAboveTerrain = 100;
