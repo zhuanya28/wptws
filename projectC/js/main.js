@@ -38,10 +38,6 @@ let prevTime = performance.now();
 let moveSpeed = 1000.0; // Default move speed
 
 
-const raycaster = new THREE.Raycaster();
-const startPoint = new THREE.Vector3();
-const directionRay = new THREE.Vector3(0, -1, 0);
-
 
 let numOfClouds = WORLD_SIZE / 100;
 let cloudGroup;
@@ -54,6 +50,8 @@ const listener = new THREE.AudioListener();
 
 let speedOfSunAndMoon = 0.005;
 
+const raycaster = new THREE.Raycaster();
+const directionRay = new THREE.Vector3(0, -1, 0);
 
 
 function setupThree() {
@@ -462,10 +460,10 @@ function createChurch() {
 
 function getTerrainHeightAt(x, z) {
   console.log(x, WORLD_HALF_SIZE * 10, z);
-  const raycaster = new THREE.Raycaster();
+  // const raycaster = new THREE.Raycaster();
   const origin = new THREE.Vector3(x, WORLD_HALF_SIZE * 100, z);
-  const direction = new THREE.Vector3(0, -1, 0);
-  raycaster.set(origin, direction);
+  // const direction = new THREE.Vector3(0, -1, 0);
+  raycaster.set(origin, directionRay);
 
   const intersects = raycaster.intersectObject(terrain);
 
