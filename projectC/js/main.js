@@ -14,8 +14,7 @@ let rayToBottom;
 
 const WORLD_SIZE = 4000;
 const WORLD_HALF_SIZE = 2000;
-let treeCount = WORLD_SIZE / 30;
-let grassCount = 50;
+let treeCount = WORLD_SIZE / 60;
 
 let terrainWidthSegments = 200;
 let terrainHeightSegments = 200;
@@ -36,7 +35,6 @@ let prevTime = performance.now();
 
 
 let moveSpeed = 1000.0; // Default move speed
-
 
 
 let numOfClouds = WORLD_SIZE / 100;
@@ -85,9 +83,8 @@ function setupThree() {
   createChurch();
   setupGUI();
 
-  // createGrass();
   createTrees();
-  createParticleGroups(15);
+  createParticleGroups(8);
 
   //music 
   document.body.addEventListener('click', initAudio, { once: true });
@@ -189,7 +186,7 @@ function updateLightPositions() {
   // Update fog color and density
   scene.fog.color.copy(currentFogColor);
   scene.fog.near = 2 + transitionFactor * 8;
-  scene.fog.far = WORLD_SIZE / 3 + transitionFactor * (WORLD_SIZE * 2 / 3);
+  scene.fog.far = WORLD_SIZE / 2 + transitionFactor * (WORLD_SIZE * 2 / 3);
 
   // Adjust light intensities
   sunLight.intensity = 2400 * transitionFactor;
@@ -224,7 +221,7 @@ function createClouds() {
   const cloudMaterial = new THREE.MeshLambertMaterial({
     map: cloudTexture,
     transparent: true,
-    opacity: 0.3,
+    opacity: 0.5,
     depthWrite: false,
   });
 
