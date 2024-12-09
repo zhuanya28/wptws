@@ -23,6 +23,7 @@ let sunLight, moonLight;
 let sunLightTarget, moonLightTarget;
 let hue = (frame * 0.01) % 1;
 
+let church;
 // for controls movements
 let moveForward = false;
 let moveBackward = false;
@@ -97,7 +98,9 @@ function setupThree() {
 
 function initAudio() {
   audioContext = new (window.AudioContext || window.webkitAudioContext)();
-  // Other audio initializations if needed...
+  if (audioContext.state === 'suspended') {
+    audioContext.resume();
+  }
 }
 
 function updateThree() {
@@ -109,6 +112,21 @@ function updateThree() {
       cloud.lookAt(camera.position);
     });
   }
+
+  const distanceToChurch = camera.position.distanceTo(church.position);
+  const maxDistance = 500;
+  const volume = Math.max(0, 1 - distanceToChurch / maxDistance);
+
+  church.children.forEach(child => {
+    if (child instanceof THREE.PositionalAudio) {
+      child.setVolume(volume);
+      if (volume > 0 && !child.isPlaying && audioContext.state === 'running') {
+        child.play();
+      } else if (volume === 0 && child.isPlaying) {
+        child.pause();
+      }
+    }
+  });
   hue = (frame * 0.0005) % 1;
   particleGroups.forEach(group => group.update(frame, camera));
 
@@ -378,6 +396,67 @@ function getBox() {
   return mesh;
 }
 
+function createChurch() {
+  const loader = new GLTFLoader();
+  church = new THREE.Group();
+
+  let x = random(-WORLD_HALF_SIZE + 100, WORLD_HALF_SIZE - 100);
+  let z = random(-WORLD_HALF_SIZE + 100, WORLD_HALF_SIZE - 100);
+  let y = getTerrainHeightAt(x, z);
+
+  loader.load(
+    'assets/low_poly_church.glb',
+    (gltf) => {
+      const model = gltf.scene;
+      model.scale.set(0.2, 0.2, 0.2);
+      church.add(model);
+
+      model.traverse((node) => {
+        if (node.isMesh) {
+          node.geometry.translate(0, 0.5, 0);
+          node.castShadow = true;
+          node.receiveShadow = true;
+        }
+      });
+      const listener = new THREE.AudioListener();
+      camera.add(listener);
+
+      const sound = new THREE.PositionalAudio(listener);
+      const audioLoader = new THREE.AudioLoader();
+      audioLoader.load('assets/church_bells.mp3', (buffer) => {
+        sound.setBuffer(buffer);
+        sound.setRefDistance(500);
+        sound.setLoop(true);
+        sound.setVolume(0);
+        church.add(sound);
+      });
+
+      const warmLight = new THREE.PointLight(0xFFAA33, 1, 1000);
+      warmLight.position.set(x, 100, z);
+      church.add(warmLight);
+    },
+    (progress) => {
+      console.log(`Loading tree model: ${(progress.loaded / progress.total * 100)}%`);
+    },
+    (error) => {
+      console.error('Error loading tree model:', error);
+    }
+  );
+
+
+  church.position.set(x, y - 30, z);
+
+  let scaleFactor;
+
+  scaleFactor = 1;
+
+  church.scale.set(scaleFactor, scaleFactor, scaleFactor);
+
+  church.receiveShadow = true;
+  church.castShadow = true;
+  scene.add(church);
+}
+
 
 
 
@@ -500,7 +579,7 @@ function updateControls() {
 
   velocity.x -= velocity.x * 10.0 * delta;
   velocity.z -= velocity.z * 10.0 * delta;
-  velocity.y -= 9.8 * 100.0 * delta; // Add gravity
+  velocity.y -= 9.8 * 100.0 * delta;
 
   direction.z = Number(moveForward) - Number(moveBackward);
   direction.x = Number(moveRight) - Number(moveLeft);
@@ -511,10 +590,16 @@ function updateControls() {
 
   const cameraPosition = controls.object.position;
   const terrainHeight = getTerrainHeightAt(cameraPosition.x, cameraPosition.z);
+
+  const churchPosition = church.position;
+  const distanceToChurch = cameraPosition.distanceTo(churchPosition);
+  const churchRadius = 200;
+
+
   const buffer = 20;
   const isWithinBounds =
     Math.abs(cameraPosition.x) < WORLD_HALF_SIZE - buffer &&
-    Math.abs(cameraPosition.z) < WORLD_HALF_SIZE - buffer;
+    Math.abs(cameraPosition.z) < WORLD_HALF_SIZE - buffer && distanceToChurch > churchRadius
 
   if (isWithinBounds) {
     controls.moveRight(-velocity.x * delta);
