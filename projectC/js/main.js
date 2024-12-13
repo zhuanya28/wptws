@@ -305,7 +305,7 @@ function createTrees() {
     let tree = new THREE.Group();
     const loader = new GLTFLoader();
 
-    if (treeType < 0.5) {
+    if (treeType <= 0.5) {
       tree.type = 'pine2';
       loader.load(
         'assets/pine_tree-2.glb',
@@ -330,7 +330,7 @@ function createTrees() {
         }
       );
     }
-    else if (treeType >= 0.5) {
+    else if (treeType > 0.5) {
       tree.type = 'pine1'
       loader.load(
         'assets/pine_tree_low-poly.glb',
