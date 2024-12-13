@@ -114,7 +114,7 @@ function updateThree() {
   }
 
   const distanceToChurch = camera.position.distanceTo(church.position);
-  const maxDistance = 500;
+  const maxDistance = 700;
   const volume = Math.max(0, 1 - distanceToChurch / maxDistance);
 
   church.children.forEach(child => {
@@ -404,7 +404,7 @@ function createTrees() {
     if (tree.type === 'pine1') {
       scaleFactor = Math.random() * 1 + 1;
     } else {
-      scaleFactor = Math.random() * 0.5 + 0.5;
+      scaleFactor = Math.random() * 0.5 + 2;
     }
 
     tree.scale.set(scaleFactor, scaleFactor, scaleFactor);
@@ -433,8 +433,8 @@ function createChurch() {
   const loader = new GLTFLoader();
   church = new THREE.Group();
 
-  let x = random(-WORLD_HALF_SIZE + 100, WORLD_HALF_SIZE - 100);
-  let z = random(-WORLD_HALF_SIZE + 100, WORLD_HALF_SIZE - 100);
+  let x = random(-WORLD_HALF_SIZE + 250, WORLD_HALF_SIZE - 250);
+  let z = random(-WORLD_HALF_SIZE + 250, WORLD_HALF_SIZE - 250);
   let y = getTerrainHeightAt(x, z);
 
   loader.load(
@@ -496,8 +496,8 @@ function createCross() {
   const loader = new GLTFLoader();
   cross = new THREE.Group();
 
-  let x = random(-WORLD_HALF_SIZE + 100, WORLD_HALF_SIZE - 100);
-  let z = random(-WORLD_HALF_SIZE + 100, WORLD_HALF_SIZE - 100);
+  let x = random(-WORLD_HALF_SIZE + 250, WORLD_HALF_SIZE - 250);
+  let z = random(-WORLD_HALF_SIZE + 250, WORLD_HALF_SIZE - 250);
   let y = getTerrainHeightAt(x, z);
 
   loader.load(
@@ -554,8 +554,8 @@ function createSpider() {
   const loader = new GLTFLoader();
   spider = new THREE.Group();
 
-  let x = random(-WORLD_HALF_SIZE + 100, WORLD_HALF_SIZE - 100);
-  let z = random(-WORLD_HALF_SIZE + 100, WORLD_HALF_SIZE - 100);
+  let x = random(-WORLD_HALF_SIZE + 250, WORLD_HALF_SIZE - 250);
+  let z = random(-WORLD_HALF_SIZE + 250, WORLD_HALF_SIZE - 250);
   let y = getTerrainHeightAt(x, z);
 
   loader.load(
@@ -599,7 +599,7 @@ function createSpider() {
 
   let scaleFactor;
 
-  scaleFactor = 0.7;
+  scaleFactor = 1;
 
   spider.scale.set(scaleFactor, scaleFactor, scaleFactor);
 
