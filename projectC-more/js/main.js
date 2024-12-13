@@ -346,7 +346,7 @@ function createTrees() {
     if (treeType <= 0.5) {
       tree.type = 'pine2';
       loader.load(
-        'assets/pine_tree-2.glb',
+        'assets/pine_try_4.glb',
         (gltf) => {
           const model = gltf.scene;
           model.scale.set(0.5, 0.5, 0.5);
@@ -371,7 +371,7 @@ function createTrees() {
     else if (treeType > 0.5) {
       tree.type = 'pine1'
       loader.load(
-        'assets/pine_tree_low-poly.glb',
+        'assets/pine_tree_good_1.glb',
         (gltf) => {
           const model = gltf.scene;
           model.scale.set(0.5, 0.5, 0.5);
@@ -404,7 +404,7 @@ function createTrees() {
     if (tree.type === 'pine1') {
       scaleFactor = Math.random() * 1 + 1;
     } else {
-      scaleFactor = Math.random() * 10 + 100;
+      scaleFactor = Math.random() * 0.5 + 0.5;
     }
 
     tree.scale.set(scaleFactor, scaleFactor, scaleFactor);
